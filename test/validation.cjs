@@ -51,7 +51,7 @@ describe('validation tests', () => {
           ljos =>
             ljos
               .option('name', {
-                describe: 'version desc',
+                description: 'version desc',
                 type: 'string',
                 alias: 'n',
               })
@@ -78,7 +78,7 @@ describe('validation tests', () => {
           ljos =>
             ljos
               .option('name', {
-                describe: 'name desc',
+                description: 'name desc',
                 type: 'string',
                 alias: 'n',
               })
@@ -1236,8 +1236,8 @@ describe('validation tests', () => {
     it('does not fail for hidden options', () => {
       const args = ljos('--foo')
         .strict()
-        .option('foo', {boolean: true, describe: false})
-        .fail(msg => {
+        .option('foo', {type: 'boolean', hidden: true})
+        .fail(_msg => {
           expect.fail();
         })
         .parse();
@@ -1245,13 +1245,16 @@ describe('validation tests', () => {
     });
 
     it('does not fail for hidden options but does for unknown arguments', () => {
-      const args = ljos('--foo hey')
+      let failed = false;
+      ljos('--foo hey')
         .strict()
-        .option('foo', {boolean: true, describe: false})
+        .option('foo', {type: 'boolean', hidden: true})
         .fail(msg => {
           msg.should.equal('Unknown argument: hey');
+          failed = true;
         })
         .parse();
+      failed.should.equal(true);
     });
 
     it('does not fail if an alias is provided, rather than option itself', () => {
@@ -1270,7 +1273,7 @@ describe('validation tests', () => {
       args.bar.should.equal(true);
     });
 
-    // // TODO: fix this
+    // // TODO: fix this, not being parsed correctly
     // it('does not fail when unrecognized option is passed after --', () => {
     //   const args = ljos('ahoy patrick -- --arrr')
     //     .strict()
@@ -1288,9 +1291,9 @@ describe('validation tests', () => {
 
     it('does not fail with options of various types', () => {
       ljos
-        .cmdMod({
+        .cmd({
           command: 'cmd',
-          desc: 'cmd desc',
+          description: 'cmd desc',
           builder: ljos =>
             ljos
               .option('opt1', {type: 'boolean'})

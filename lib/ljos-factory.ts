@@ -288,6 +288,7 @@ export class LjosInstance {
     );
     return this;
   }
+  // TODO: simplify call signature
   /** Set arg that, when provided, will output bash/zsh completion script for use in .bashrc/.zshrc */
   completion(
     cmd?: string,
@@ -355,7 +356,7 @@ export class LjosInstance {
     return this;
   }
   /** TODO */
-  cmdMod({
+  cmd({
     command,
     description = false,
     builder = noop,
@@ -420,7 +421,7 @@ export class LjosInstance {
     this.#usage.epilog(msg);
     return this;
   }
-  /** TODO */
+  /** Set example invocations of program */
   example(
     cmd: string | [string, string?][],
     description?: string
@@ -1282,16 +1283,13 @@ export class LjosInstance {
   }
 
   #describe(
-    keys: string | string[] | Dictionary<string>,
+    key: string,
     description?: string
+    // keys: string | string[] | Dictionary<string>,
   ): LjosInstance {
-    argsert(
-      '<object|string|array> [string]',
-      [keys, description],
-      arguments.length
-    );
-    this.#setKey(keys, true);
-    this.#usage.describe(keys, description);
+    argsert('<string> [string]', [key, description], arguments.length);
+    this.#setKey(key, true);
+    this.#usage.describe(key, description);
     return this;
   }
 
@@ -1625,8 +1623,10 @@ export class LjosInstance {
   }
 
   #setKey(
-    key: string | string[] | Dictionary<string | boolean>,
-    set?: boolean | string
+    key: string,
+    set: boolean | string
+    // set?: boolean | string
+    // key: string | string[] | Dictionary<string | boolean>,
   ) {
     this.#populateParserHintSingleValueDictionary(
       this.#setKey.bind(this),

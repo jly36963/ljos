@@ -195,7 +195,7 @@ describe('Command', () => {
     // Addresses: https://github.com/ljos/ljos/issues/1637
     it('supports variadic positionals', () => {
       ljos
-        .cmdMod({
+        .cmd({
           command: 'cmd1 <foods..>',
           description: 'cmd1 desc',
           builder: ljos =>
@@ -213,7 +213,7 @@ describe('Command', () => {
 
     it('supports array options', () => {
       ljos
-        .cmdMod({
+        .cmd({
           command: 'cmd1',
           description: 'cmd1 desc',
           builder: ljos =>
@@ -231,7 +231,7 @@ describe('Command', () => {
 
     it('does not overwrite options in argv if variadic and when using default command', () => {
       ljos
-        .cmdMod({
+        .cmd({
           command: '$0 [foods..]',
           description: 'default desc',
           builder: ljos =>
@@ -249,7 +249,7 @@ describe('Command', () => {
 
     it('does not combine positional default and provided values', () => {
       ljos()
-        .cmdMod({
+        .cmd({
           command: 'cmd [foods..]',
           description: 'cmd desc',
           builder: ljos =>
@@ -269,7 +269,7 @@ describe('Command', () => {
     // TODO: convert to camel-case
     // it('does not combine config values and provided values', () => {
     //   ljos('foo bar baz qux')
-    //     .cmdMod({
+    //     .cmd({
     //       command: '$0 <arg-1> [arg-2] [arg-3..]',
     //       description: 'default description',
     //       builder: ljos =>
@@ -294,7 +294,7 @@ describe('Command', () => {
 
     it('does not overwrite options in argv if variadic and preserves falsy values', () => {
       ljos
-        .cmdMod({
+        .cmd({
           command: '$0 [numbers..]',
           description: 'default desc',
           builder: ljos =>
@@ -555,12 +555,12 @@ describe('Command', () => {
     });
   });
 
-  describe('cmdMod', () => {
+  describe('cmd', () => {
     it('accepts module (with noop builder/handler)', () => {
       const command = 'foo';
       const description = "I'm not feeling very creative at the moment";
 
-      const y = ljos([]).cmdMod({
+      const y = ljos([]).cmd({
         command,
         description,
         builder: noop,
@@ -581,7 +581,7 @@ describe('Command', () => {
       const builder = ljos =>
         ljos.option('hello', {type: 'string', default: 'world'});
 
-      const y = ljos([]).cmdMod({
+      const y = ljos([]).cmd({
         command,
         description,
         builder,
@@ -612,7 +612,7 @@ describe('Command', () => {
       const isDefault = false;
       const deprecated = false;
 
-      const y = ljos([]).cmdMod(module);
+      const y = ljos([]).cmd(module);
       const handlers = y
         .getInternalMethods()
         .getCommandInstance()
@@ -644,7 +644,7 @@ describe('Command', () => {
     //   const aliases = [];
     //   const deprecated = false;
 
-    //   const y = ljos([]).cmdMod(module);
+    //   const y = ljos([]).cmd(module);
     //   const handlers = y
     //     .getInternalMethods()
     //     .getCommandInstance()
@@ -676,7 +676,7 @@ describe('Command', () => {
     //   const aliases = [];
     //   const deprecated = false;
 
-    //   const y = ljos([]).cmdMod(module);
+    //   const y = ljos([]).cmd(module);
     //   const handlers = y
     //     .getInternalMethods()
     //     .getCommandInstance()
@@ -702,7 +702,7 @@ describe('Command', () => {
         handler: noop,
       };
 
-      const y = ljos([]).cmdMod(module);
+      const y = ljos([]).cmd(module);
       const handlers = y
         .getInternalMethods()
         .getCommandInstance()
@@ -721,7 +721,7 @@ describe('Command', () => {
         handler: noop,
       };
 
-      const y = ljos([]).cmdMod(module);
+      const y = ljos([]).cmd(module);
       const handlers = y
         .getInternalMethods()
         .getCommandInstance()
@@ -745,7 +745,7 @@ describe('Command', () => {
       const aliases = [];
       const deprecated = false;
 
-      const y = ljos([]).cmdMod(module);
+      const y = ljos([]).cmd(module);
       const handlers = y
         .getInternalMethods()
         .getCommandInstance()
@@ -774,7 +774,7 @@ describe('Command', () => {
       const aliases = [];
       const deprecated = false;
 
-      const y = ljos([]).cmdMod(module);
+      const y = ljos([]).cmd(module);
       const handlers = y
         .getInternalMethods()
         .getCommandInstance()
@@ -803,7 +803,7 @@ describe('Command', () => {
     //   const isDefault = false;
     //   const deprecated = false;
 
-    //   const y = ljos([]).cmdMod(module);
+    //   const y = ljos([]).cmd(module);
     //   const handlers = y
     //     .getInternalMethods()
     //     .getCommandInstance()
@@ -840,7 +840,7 @@ describe('Command', () => {
       const isDefault = false;
       const deprecated = false;
 
-      const y = ljos([]).cmdMod(module);
+      const y = ljos([]).cmd(module);
       const handlers = y
         .getInternalMethods()
         .getCommandInstance()
@@ -878,7 +878,7 @@ describe('Command', () => {
     //   const isDefault = false;
     //   const deprecated = false;
 
-    //   const y = ljos([]).cmdMod(module);
+    //   const y = ljos([]).cmd(module);
     //   const handlers = y
     //     .getInternalMethods()
     //     .getCommandInstance()
@@ -915,7 +915,7 @@ describe('Command', () => {
       const isDefault = false;
       const deprecated = false;
 
-      const y = ljos([]).cmdMod(module);
+      const y = ljos([]).cmd(module);
       const handlers = y
         .getInternalMethods()
         .getCommandInstance()
@@ -1114,33 +1114,33 @@ describe('Command', () => {
   //       command: 'cmd <sub>',
   //       description: 'Try a command',
   //       builder(ljos) {
-  //         return ljos.cmdMod(sub);
+  //         return ljos.cmd(sub);
   //       },
   //       handler: noop,
   //     };
 
   //     const helpCmd = checkOutput(
-  //       () => ljos('help cmd').wrap(null).cmdMod(cmd).parse(),
+  //       () => ljos('help cmd').wrap(null).cmd(cmd).parse(),
   //       ['./command']
   //     );
 
   //     const cmdHelp = checkOutput(
-  //       () => ljos('cmd help').wrap(null).cmdMod(cmd).parse(),
+  //       () => ljos('cmd help').wrap(null).cmd(cmd).parse(),
   //       ['./command']
   //     );
 
   //     const helpCmdSub = checkOutput(
-  //       () => ljos('help cmd sub').wrap(null).cmdMod(cmd).parse(),
+  //       () => ljos('help cmd sub').wrap(null).cmd(cmd).parse(),
   //       ['./command']
   //     );
 
   //     const cmdHelpSub = checkOutput(
-  //       () => ljos('cmd help sub').wrap(null).cmdMod(cmd).parse(),
+  //       () => ljos('cmd help sub').wrap(null).cmd(cmd).parse(),
   //       ['./command']
   //     );
 
   //     const cmdSubHelp = checkOutput(
-  //       () => ljos('cmd sub help').wrap(null).cmdMod(cmd).parse(),
+  //       () => ljos('cmd sub help').wrap(null).cmd(cmd).parse(),
   //       ['./command']
   //     );
 
@@ -2088,7 +2088,7 @@ describe('Command', () => {
       //     )
       //     .strict()
       //     .option('foo', {
-      //       describe: 'a foo command',
+      //       description: 'a foo command',
       //     })
       //     .parse();
       //   expect(called).to.equal(true);
@@ -2133,7 +2133,7 @@ describe('Command', () => {
         const description = 'description';
         const deprecated = true;
         const r = checkOutput(() => {
-          ljos('--help').cmdMod({command, description, deprecated}).parse();
+          ljos('--help').cmd({command, description, deprecated}).parse();
         });
         r.logs.should.match(/\[deprecated\]/);
       });
@@ -2142,7 +2142,7 @@ describe('Command', () => {
         const description = 'description';
         const deprecated = 'deprecated';
         const r = checkOutput(() => {
-          ljos('--help').cmdMod({command, description, deprecated}).parse();
+          ljos('--help').cmd({command, description, deprecated}).parse();
         });
         r.logs.should.match(/\[deprecated: deprecated\]/);
       });
@@ -2349,10 +2349,10 @@ describe('Command', () => {
     const cmd = {
       command: 'a',
       description: 'numeric comamand',
-      builder: ljos => ljos.cmdMod(innerCommand),
+      builder: ljos => ljos.cmd(innerCommand),
       handler: noop,
     };
-    const argv = ljos('a c 10 5').cmdMod(cmd).parse();
+    const argv = ljos('a c 10 5').cmd(cmd).parse();
     argv.output.should.equal(15);
   });
 
@@ -2419,15 +2419,15 @@ describe('Command', () => {
       let invoked = false;
       await ljos('alpha beta')
         .strict()
-        .cmdMod({
+        .cmd({
           command: 'alpha',
-          describe: 'A',
+          description: 'A',
           builder: async ljos => {
             await wait();
             ljos
-              .cmdMod({
+              .cmd({
                 command: 'beta',
-                describe: 'B',
+                description: 'B',
                 handler: () => {
                   invoked = true;
                 },
@@ -2447,7 +2447,7 @@ describe('Command', () => {
         .command('alpha', 'A', async ljos => {
           await wait();
           ljos
-            .cmdMod({
+            .cmd({
               command: 'beta',
               description: 'B',
               builder: async ljos => {

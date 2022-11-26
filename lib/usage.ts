@@ -135,6 +135,7 @@ export function usage(ljos: LjosInstance, shim: PlatformShim) {
   };
   self.getCommands = () => commands;
 
+  // TODO: simplify
   let descriptions: Dictionary<string | undefined> = {};
   self.describe = function describe(
     keyOrKeys: string | string[] | Dictionary<string>,
@@ -776,7 +777,7 @@ export interface UsageInstance {
     deprecated?: boolean
   ): void;
   deferY18nLookup(str: string): string;
-  describe(keys: string | string[] | Dictionary<string>, desc?: string): void;
+  describe(keys: string, desc?: string): void;
   epilog(msg: string): void;
   example(cmd: string, description?: string): void;
   fail(msg?: string | null, err?: LError | string): void;
