@@ -1,0 +1,6 @@
+// TODO: consolidate on using a helpers file at some point in the future, which
+// is the approach currently used to export Parser for ESM:
+const {Parser, Ljos, processArgv} = require('./build/index.cjs');
+Ljos.hideBin = processArgv.hideBin;
+Ljos.Parser = Parser;
+module.exports = Ljos;
