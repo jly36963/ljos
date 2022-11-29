@@ -19,28 +19,6 @@ npm i ljos
 ### Simple
 
 ```js
-const input = "greet Timmy";
-
-ljos()
-  .command(
-    "greet <name>",
-    "greet command description",
-    (ljos) => ljos.positional("name", { type: "string", required: true }),
-    (argv) => {
-      const { name } = argv;
-      console.log(`Hey there, ${name}!`);
-    },
-  )
-  .parse(input);
-```
-
-```
-Hey there, Timmy!
-```
-
-### Simple (module)
-
-```js
 const input = "greet Jimmy";
 
 ljos()
@@ -61,18 +39,18 @@ ljos()
 Hey there, Jimmy!
 ```
 
-### Optional
+### Simple (legacy)
 
 ```js
-const input = "greet";
+const input = "greet Timmy";
 
 ljos()
   .command(
-    "greet [name]",
+    "greet <name>",
     "greet command description",
-    (ljos) => ljos.positional("name", { type: "string" }),
+    (ljos) => ljos.positional("name", { type: "string", required: true }),
     (argv) => {
-      const { name = "friend" } = argv;
+      const { name } = argv;
       console.log(`Hey there, ${name}!`);
     },
   )
@@ -80,43 +58,52 @@ ljos()
 ```
 
 ```
-Hey there, friend!
+Hey there, Timmy!
 ```
 
-### Middleware
+### Default command
 
 ```js
-const input = "greet patrick star";
-
-function stringToBase64(s) {
-  return Buffer.from(s, "utf-8").toString("base64");
-}
+const input = "Carl";
 
 ljos()
   .cmd({
-    command: "greet <first-name> <last-name>",
-    description: "greet command description",
+    command: "$0 <name>",
+    description: "default command description",
     builder: (ljos) =>
-      ljos
-        .positional("first-name", { type: "string", required: true })
-        .positional("last-name", { type: "string", required: true }),
+      ljos.positional("name", { type: "string", required: true }),
     handler: (argv) => {
-      // ljos will provide both kebab- and camel-case versions of args
-      const { firstName, lastName } = argv;
-      console.log(`Hey there, ${firstName} ${lastName}!`);
+      const { name } = argv;
+      console.log(`Hey there, ${name}!`);
     },
-    // Array of middleware objects with callbacks
-    middleware: [
-      // Result of middleware callback will be merged with argv
-      { f: ({ firstName }) => ({ firstName: firstName.toUpperCase() }) },
-      { f: ({ lastName }) => ({ lastName: stringToBase64(lastName) }) },
-    ],
   })
   .parse(input);
 ```
 
 ```
-Hey there, PATRICK c3Rhcg==!
+Hey there, Carl!
+```
+
+### Optional
+
+```js
+const input = "greet";
+
+ljos()
+  .command({
+    command: "greet [name]",
+    description: "greet command description",
+    builder: (ljos) => ljos.positional("name", { type: "string" }),
+    handler: (argv) => {
+      const { name = "friend" } = argv;
+      console.log(`Hey there, ${name}!`);
+    },
+  })
+  .parse(input);
+```
+
+```
+Hey there, friend!
 ```
 
 ### Input sources
@@ -156,6 +143,152 @@ from-string
 2 + 3 = 5
 from-array
 5 + 6 = 11
+```
+
+### Middleware
+
+```js
+const input = "greet patrick star";
+
+function stringToBase64(s) {
+  return Buffer.from(s, "utf-8").toString("base64");
+}
+
+ljos()
+  .cmd({
+    command: "greet <first-name> <last-name>",
+    description: "greet command description",
+    builder: (ljos) =>
+      ljos
+        .positional("first-name", { type: "string", required: true })
+        .positional("last-name", { type: "string", required: true }),
+    handler: (argv) => {
+      // ljos will provide both kebab- and camel-case versions of args
+      const { firstName, lastName } = argv;
+      console.log(`Hey there, ${firstName} ${lastName}!`);
+    },
+    // Array of middleware objects with callbacks
+    middleware: [
+      // Result of middleware callback will be merged with argv
+      { f: ({ firstName }) => ({ firstName: firstName.toUpperCase() }) },
+      {
+        f: ({ lastName }) => ({ lastName: stringToBase64(lastName) }),
+        applyBeforeMiddleware: true,
+      },
+    ],
+  })
+  .parse(input);
+```
+
+```
+Hey there, PATRICK c3Rhcg==!
+```
+
+### Check
+
+```js
+const input = "divide 1 2";
+
+ljos()
+  .cmd({
+    command: "divide <a> <b>",
+    description: "divide command description",
+    builder: (ljos) =>
+      ljos
+        .positional("a", {
+          type: "number",
+          required: true,
+          description: "numerator",
+        })
+        .positional("b", {
+          type: "number",
+          required: true,
+          description: "denominator",
+        })
+        .check((argv) => {
+          const { b } = argv;
+          if (b === 0) {
+            // Fails validation, shows error messge
+            throw new Error("Please do not divide by 0");
+          }
+          // Passes validation, continues with execution
+          return true;
+        }),
+    handler: (argv) => {
+      const { a, b } = argv;
+      const result = a / b;
+      console.log(`${a} / ${b} = ${result}`);
+    },
+  })
+  .parse(input);
+```
+
+```
+1 / 2 = 0.5
+```
+
+### Subcommands
+
+```js
+const inputs = {
+  sum: "math sum 1 2 3 4",
+  product: "math product 1 2 3 4",
+};
+
+const program = ljos()
+  .cmd({
+    command: "math",
+    description: "math command description",
+    builder: (ljos) =>
+      ljos
+        .demandCommand(1)
+        .cmd({
+          command: "sum <numbers..>",
+          description: "get the sum of numbers",
+          builder: (ljos) =>
+            ljos.positional("numbers", {
+              array: true,
+              type: "number",
+              required: true,
+            }),
+          handler: (argv) => {
+            const { numbers } = argv;
+            const result = numbers.reduce((acc, curr) => acc + curr, 0);
+            console.log(`The sum of ${numbers} is ${result}`);
+          },
+        })
+        .cmd({
+          command: "product <numbers..>",
+          description: "get the sum of numbers",
+          builder: (ljos) =>
+            ljos.positional("numbers", {
+              array: true,
+              type: "number",
+              required: true,
+            }),
+          handler: (argv) => {
+            const { numbers } = argv;
+            const result = numbers.reduce((acc, curr) => acc * curr, 1);
+            console.log(`The product of ${numbers} is ${result}`);
+          },
+        }),
+    handler: (argv) => {
+      const { name } = argv;
+      console.log(`Hey there, ${name}!`);
+    },
+  });
+
+for (const [name, input] of Object.entries(inputs)) {
+  console.log(name);
+  program.parse(input);
+}
+```
+
+```
+sum
+The sum of 1,2,3,4 is 10
+product
+The product of 1,2,3,4 is 24
 ```
 
 ## Documentation
