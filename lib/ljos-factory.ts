@@ -40,16 +40,20 @@ import {
   CompletionInstance,
 } from './completion.js';
 import {
-  KeyOrPos,
+  // KeyOrPos,
   validation as Validation,
   ValidationInstance,
 } from './validation.js';
 import {objFilter} from './utils/obj-filter.js';
 import {
+  middlewareFunc,
   applyMiddleware,
   MiddlwareInstance,
   MiddlewareInput,
-  middlewareFactory,
+  globalMwFactory,
+  checkMwFactory,
+  commandMwFactory,
+  Middleware,
 } from './middleware.js';
 import {isPromise} from './utils/is-promise.js';
 import {maybeAsyncResult} from './utils/maybe-async-result.js';
@@ -271,13 +275,8 @@ export class LjosInstance {
       );
 
     // Add check middleware
-    this.middleware({
-      f: middlewareCallback,
-      applyBeforeValidation: false,
-      global,
-      mutates: false,
-    });
-    return this;
+    const middleware = checkMwFactory({f: middlewareCallback, global});
+    return this.#middlewareInstance.addMiddleware(middleware);
   }
   /** Set config object keys/values on argv */
   config(obj: Dictionary): LjosInstance {
@@ -340,16 +339,14 @@ export class LjosInstance {
     const {aliases = [], middleware = [], deprecated = false} = config;
     argsert('[array] [array] [boolean]', [aliases, middleware, deprecated]);
 
-    const middlewareWithDefaults = middleware.map(m =>
-      middlewareFactory(m, false)
-    );
+    const fullMiddleware = middleware.map(commandMwFactory);
 
     this.#commandInstance.addHandler(
       cmd,
       desc,
       builder,
       handler,
-      middlewareWithDefaults,
+      fullMiddleware,
       deprecated,
       aliases
     );
@@ -547,8 +544,8 @@ export class LjosInstance {
     return this;
   }
   /** Register a middleware */
-  middleware(mw: MiddlewareInput): LjosInstance {
-    const middleware = middlewareFactory(mw, true);
+  middleware(mw: middlewareFunc | MiddlewareInput): LjosInstance {
+    const middleware = globalMwFactory(mw);
     return this.#middlewareInstance.addMiddleware(middleware);
   }
   /** Register an option argument */
@@ -2294,6 +2291,7 @@ interface FrozenLjosInstance {
 }
 
 interface CommandConfig {
+  // middleware: Middleware[];
   middleware: MiddlewareInput[];
   aliases: string[];
   deprecated: boolean;

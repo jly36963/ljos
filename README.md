@@ -146,9 +146,11 @@ ljos()
       console.log(`Hey there, ${firstName} ${lastName}!`);
     },
     // Array of middleware objects with callbacks
+    // Result of middleware callback will be merged with argv
     middleware: [
-      // Result of middleware callback will be merged with argv
-      { f: ({ firstName }) => ({ firstName: firstName.toUpperCase() }) },
+      // Just a callback function
+      ({ firstName }) => ({ firstName: firstName.toUpperCase() }),
+      // Or an object with additional fields
       {
         f: ({ lastName }) => ({ lastName: stringToBase64(lastName) }),
         applyBeforeMiddleware: true,
@@ -313,6 +315,7 @@ TODO
     - make callback void, only throw errors
   - convert validation methods to check middleware helpers
     - demand / requiresArg logic
+  - makeMiddleware func (f => obj)
 - fix/remove/address TODO tests
 - argsert for object params
 - strict by default, only return first unknown?

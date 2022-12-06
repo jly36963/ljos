@@ -41,6 +41,20 @@ describe('middleware', () => {
     argv.opt1.should.equal('abc');
   });
 
+  it('runs the middleware before reaching the handler (2)', () => {
+    const argv = ljos(['cmd1'])
+      .middleware(argv => {
+        argv.opt1 = 'abc';
+      })
+      .command({
+        cmd: 'cmd1',
+        desc: 'cmd1 desc',
+        builder: ljos => ljos.option('opt1', {type: 'string'}),
+      })
+      .parse();
+    argv.opt1.should.equal('abc');
+  });
+
   it('runs all middleware before reaching the handler', () => {
     let handlerCalled = false;
     ljos(['cmd1'])
@@ -53,6 +67,34 @@ describe('middleware', () => {
         f: argv => {
           argv.opt2 = 'def';
         },
+      })
+      .command({
+        cmd: 'cmd1',
+        desc: 'cmd1 desc',
+        builder: ljos =>
+          ljos
+            .option('opt1', {type: 'string'})
+            .option('opt2', {type: 'string'}),
+        handler: argv => {
+          argv.opt1.should.equal('abc');
+          argv.opt2.should.equal('def');
+          handlerCalled = true;
+        },
+      })
+      .exitProcess(false)
+      .parse();
+
+    handlerCalled.should.equal(true);
+  });
+
+  it('runs all middleware before reaching the handler (2)', () => {
+    let handlerCalled = false;
+    ljos(['cmd1'])
+      .middleware(argv => {
+        argv.opt1 = 'abc';
+      })
+      .middleware(argv => {
+        argv.opt2 = 'def';
       })
       .command({
         cmd: 'cmd1',

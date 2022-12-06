@@ -20,20 +20,19 @@ export class MiddlwareInstance {
     applyBeforeValidation,
     global,
     mutates,
+    applied,
     option = undefined,
   }: Middleware): LjosInstance {
-    argsert('<function> [boolean] [boolean] [boolean] [string|undefined]', [
-      f,
-      applyBeforeValidation,
-      global,
-      mutates,
-      option,
-    ]);
+    argsert(
+      '<function> [boolean] [boolean] [boolean] [boolean] [string|undefined]',
+      [f, applyBeforeValidation, global, mutates, applied, option]
+    );
     const m: Middleware = {
       f,
       applyBeforeValidation,
       global,
       mutates,
+      applied,
       option,
     };
     this.globalMiddleware.push(m);
@@ -41,7 +40,7 @@ export class MiddlwareInstance {
   }
 
   // For "coerce" middleware, only one middleware instance can be registered per option
-  addCoerceMiddleware(f: middlewareCallback, option: string): LjosInstance {
+  addCoerceMiddleware(f: middlewareFunc, option: string): LjosInstance {
     const aliases = this.ljos.getInternalMethods().getAliases();
 
     this.globalMiddleware = this.globalMiddleware.filter(m => {
@@ -50,13 +49,8 @@ export class MiddlwareInstance {
       else return !toCheck.includes(m.option);
     });
 
-    return this.addMiddleware({
-      f,
-      applyBeforeValidation: true,
-      global: true,
-      mutates: true,
-      option,
-    });
+    const middleware = coerceMwFactory(f, option);
+    return this.addMiddleware(middleware);
   }
 
   getMiddleware() {
@@ -78,15 +72,47 @@ export class MiddlwareInstance {
 }
 
 /** Take middleware input and merge with defaults */
-export function middlewareFactory(
-  mw: MiddlewareInput,
-  globalByDefault = true // if .command(), true; if .middleware(), false
+export function mwFactory(
+  mw: middlewareFunc | MiddlewareInput,
+  globalByDefault: boolean,
+  mutates: boolean
 ): Middleware {
+  const {f, global, applyBeforeValidation} = mwFuncToObj(mw);
   return {
-    applyBeforeValidation: false,
-    global: globalByDefault,
-    mutates: false,
-    ...mw,
+    f,
+    global: global ?? globalByDefault,
+    applyBeforeValidation: applyBeforeValidation ?? false,
+    mutates,
+    applied: false,
+  };
+}
+
+export function mwFuncToObj(
+  mw: middlewareFunc | MiddlewareInput
+): MiddlewareInput {
+  return typeof mw === 'function' ? {f: mw} : mw;
+}
+
+export function commandMwFactory(mw: middlewareFunc | MiddlewareInput) {
+  return mwFactory(mw, false, true);
+}
+
+export function globalMwFactory(mw: middlewareFunc | MiddlewareInput) {
+  return mwFactory(mw, true, true);
+}
+
+export function checkMwFactory(mw: middlewareFunc | MiddlewareInput) {
+  return mwFactory(mw, true, false);
+}
+
+function coerceMwFactory(f: middlewareFunc, option: string) {
+  return {
+    f,
+    applyBeforeValidation: true,
+    global: true,
+    mutates: true,
+    applied: false,
+    option,
   };
 }
 
@@ -130,19 +156,19 @@ export function applyMiddleware(
 //   (argv: Arguments, ljos: LjosInstance): maybePromisePartialArgs;
 // }
 
-export type middlewareCallback = (
+export type middlewareFunc = (
   argv: Arguments,
   ljos: LjosInstance
 ) => maybePromisePartialArgs;
 
 export interface MiddlewareInput {
-  f: middlewareCallback;
+  f: middlewareFunc;
   applyBeforeValidation?: boolean;
   global?: boolean;
-  mutates?: boolean;
 }
 
 export interface Middleware extends MiddlewareInput {
+  mutates: boolean;
+  applied: boolean;
   option?: string; // Only one coerce middleware can be registered per option
-  applied?: boolean;
 }
