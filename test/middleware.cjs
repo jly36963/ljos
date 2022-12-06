@@ -32,9 +32,11 @@ describe('middleware', () => {
           argv.opt1 = 'abc';
         },
       })
-      .command('cmd1', 'cmd1 desc', ljos =>
-        ljos.option('opt1', {type: 'string'})
-      )
+      .command({
+        cmd: 'cmd1',
+        desc: 'cmd1 desc',
+        builder: ljos => ljos.option('opt1', {type: 'string'}),
+      })
       .parse();
     argv.opt1.should.equal('abc');
   });
@@ -52,19 +54,19 @@ describe('middleware', () => {
           argv.opt2 = 'def';
         },
       })
-      .command(
-        'cmd1',
-        'cmd1 desc',
-        ljos =>
+      .command({
+        cmd: 'cmd1',
+        desc: 'cmd1 desc',
+        builder: ljos =>
           ljos
             .option('opt1', {type: 'string'})
             .option('opt2', {type: 'string'}),
-        argv => {
+        handler: argv => {
           argv.opt1.should.equal('abc');
           argv.opt2.should.equal('def');
           handlerCalled = true;
-        }
-      )
+        },
+      })
       .exitProcess(false)
       .parse();
 
@@ -79,24 +81,24 @@ describe('middleware', () => {
           argv.opt1 = 'abc1';
         },
       })
-      .command(
-        'mw',
-        'adds func list to middleware',
-        ljos =>
+      .command({
+        cmd: 'mw',
+        desc: 'adds func list to middleware',
+        builder: ljos =>
           ljos
             .option('opt1', {type: 'string'})
             .option('opt2', {type: 'string'})
             .option('opt3', {type: 'string'})
             .option('opt4', {type: 'string'}),
-        argv => {
+        handler: argv => {
           // We should get the argv filled with data from the middleware
           argv.opt1.should.equal('abc1');
           argv.opt2.should.equal('abc2');
           argv.opt3.should.equal('abc3');
           argv.opt4.should.equal('abc4');
           handlerCalled = true;
-        }
-      )
+        },
+      })
       .middleware({
         f: argv => {
           argv.opt2 = 'abc2';
@@ -127,36 +129,32 @@ describe('middleware', () => {
           count++;
         },
       })
-      .command(
-        'foo',
-        'foo command',
-        () => {},
-        () => {},
-        {
-          middleware: [
-            {
-              f: () => {
-                count++;
-              },
+      .command({
+        cmd: 'foo',
+        desc: 'foo command',
+        builder: () => {},
+        handler: () => {},
+        middleware: [
+          {
+            f: () => {
+              count++;
             },
-          ],
-        }
-      )
-      .command(
-        'bar',
-        'bar command',
-        () => {},
-        () => {},
-        {
-          middleware: [
-            {
-              f: _argv => {
-                count++;
-              },
+          },
+        ],
+      })
+      .command({
+        cmd: 'bar',
+        desc: 'bar command',
+        builder: () => {},
+        handler: () => {},
+        middleware: [
+          {
+            f: _argv => {
+              count++;
             },
-          ],
-        }
-      )
+          },
+        ],
+      })
       .exitProcess(false)
       .parse();
     count.should.equal(2);
@@ -165,21 +163,21 @@ describe('middleware', () => {
   it('allows middleware to be added in builder', () => {
     let handlerCalled = false;
     ljos(['cmd1'])
-      .command(
-        'cmd1',
-        'cmd1 desc',
-        ljos => {
+      .command({
+        cmd: 'cmd1',
+        desc: 'cmd1 desc',
+        builder: ljos => {
           ljos.option('opt1', {type: 'string'}).middleware({
             f: argv => {
               argv.opt1 = 'abc';
             },
           });
         },
-        argv => {
+        handler: argv => {
           argv.opt1.should.equal('abc');
           handlerCalled = true;
-        }
-      )
+        },
+      })
       .exitProcess(false)
       .parse();
 
@@ -190,10 +188,10 @@ describe('middleware', () => {
     let handlerCalled = false;
 
     ljos(['cmd1'])
-      .command(
-        'cmd1',
-        'adds func to middleware',
-        ljos => {
+      .command({
+        cmd: 'cmd1',
+        desc: 'adds func to middleware',
+        builder: ljos => {
           ljos.option('opt1', {type: 'string'}).middleware({
             f: (argv, ljos) => {
               expect(typeof ljos.help).to.equal('function');
@@ -201,11 +199,11 @@ describe('middleware', () => {
             },
           });
         },
-        argv => {
+        handler: argv => {
           argv.opt1.should.equal('abc');
           handlerCalled = true;
-        }
-      )
+        },
+      })
       .exitProcess(false)
       .parse();
 
@@ -221,10 +219,10 @@ describe('middleware', () => {
           argv.opt2 = 'abc';
         },
       })
-      .command(
-        'cmd1',
-        'cmd1 desc',
-        ljos =>
+      .command({
+        cmd: 'cmd1',
+        desc: 'cmd1 desc',
+        builder: ljos =>
           ljos
             .option('opt1', {type: 'number', aliases: ['o1']})
             .option('opt2', {type: 'string'})
@@ -235,12 +233,12 @@ describe('middleware', () => {
                 argv.opt3 = 'def';
               },
             }),
-        argv => {
+        handler: argv => {
           argv.opt2.should.equal('abc');
           argv.opt3.should.equal('def');
           checked = true;
-        }
-      )
+        },
+      })
       .exitProcess(false)
       .parse();
 
@@ -256,12 +254,15 @@ describe('middleware', () => {
             argv.opt1 = 'abc';
           },
         })
-        .command('cmd1', 'adds func to middleware', ljos =>
-          ljos.option('opt1', {
-            required: true,
-            type: 'string',
-          })
-        )
+        .command({
+          cmd: 'cmd1',
+          desc: 'adds func to middleware',
+          builder: ljos =>
+            ljos.option('opt1', {
+              required: true,
+              type: 'string',
+            }),
+        })
         .exitProcess(false)
         .parse();
 
@@ -283,11 +284,14 @@ describe('middleware', () => {
             });
           },
         })
-        .command('cmd1', 'cmd1 desc', ljos =>
-          ljos
-            .option('opt1', {required: true, type: 'string'})
-            .option('opt2', {required: true, type: 'boolean'})
-        )
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos =>
+            ljos
+              .option('opt1', {required: true, type: 'string'})
+              .option('opt2', {required: true, type: 'boolean'}),
+        })
         .parse();
       argv.opt1.should.equal('abc');
       argv.opt2.should.equal(true);
@@ -308,12 +312,15 @@ describe('middleware', () => {
               });
             },
           })
-          .command('cmd1', 'command with middleware', ljos =>
-            ljos.option('mw', {
-              required: true,
-              type: 'string',
-            })
-          )
+          .command({
+            cmd: 'cmd1',
+            desc: 'command with middleware',
+            builder: ljos =>
+              ljos.option('mw', {
+                required: true,
+                type: 'string',
+              }),
+          })
           .parse();
         expect.fail(); // Shouldn't reach here
       } catch (err) {
@@ -326,18 +333,18 @@ describe('middleware', () => {
     it('does not cause an unexpected error when async middleware and strict are both used', done => {
       const input = 'cmd1';
       ljos(input)
-        .command(
-          'cmd1',
-          'cmd1 desc',
-          ljos =>
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos =>
             ljos.middleware({
               applyBeforeValidation: true,
               f: async argv => argv,
             }),
-          _argv => {
+          handler: _argv => {
             done();
-          }
-        )
+          },
+        })
         .fail(msg => {
           done(new Error(msg));
         })
@@ -347,17 +354,20 @@ describe('middleware', () => {
 
     it('runs before validation, when middleware is added in builder', () => {
       const argv = ljos(['cmd1'])
-        .command('cmd1', 'cmd with middleware', ljos =>
-          ljos
-            .option('mw', {type: 'string', required: true})
-            // We know that this middleware is being run in the context of the mw command
-            .middleware({
-              applyBeforeValidation: true,
-              f: argv => {
-                argv.mw = 'mw';
-              },
-            })
-        )
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd with middleware',
+          builder: ljos =>
+            ljos
+              .option('mw', {type: 'string', required: true})
+              // We know that this middleware is being run in the context of the mw command
+              .middleware({
+                applyBeforeValidation: true,
+                f: argv => {
+                  argv.mw = 'mw';
+                },
+              }),
+        })
         .exitProcess(false)
         .parse();
 
@@ -373,9 +383,11 @@ describe('middleware', () => {
             argv.mw = 'mw';
           },
         })
-        .command('cmd1', 'adds func to middleware', ljos =>
-          ljos.option('mw', {type: 'string', required: true})
-        )
+        .command({
+          cmd: 'cmd1',
+          desc: 'adds func to middleware',
+          builder: ljos => ljos.option('mw', {type: 'string', required: true}),
+        })
         .option('foo', {type: 'number', required: true, aliases: ['f']})
         .exitProcess(false)
         .parse();
@@ -385,16 +397,20 @@ describe('middleware', () => {
 
     it('applies aliases before middleware is called, when middleware is added in builder', () => {
       const argv = ljos(['cmd1', '--foo', '99'])
-        .command('cmd1', 'cmd1 desc', ljos => {
-          ljos
-            .middleware({
-              applyBeforeValidation: true,
-              f: argv => {
-                argv.f.should.equal(99);
-                argv.opt1 = 'abc';
-              },
-            })
-            .option('opt1', {type: 'string', required: true});
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos => {
+            ljos
+              .middleware({
+                applyBeforeValidation: true,
+                f: argv => {
+                  argv.f.should.equal(99);
+                  argv.opt1 = 'abc';
+                },
+              })
+              .option('opt1', {type: 'string', required: true});
+          },
         })
         .option('foo', {type: 'number', required: true, aliases: ['f']})
         .exitProcess(false)
@@ -409,13 +425,13 @@ describe('middleware', () => {
     it('fails when the promise returned by the middleware rejects', () => {
       const error = new Error();
       ljos('foo')
-        .command(
-          'foo',
-          'foo command',
-          () => {},
-          _argv => new Error('should not have been called'),
-          {middleware: [{f: argv => Promise.reject(error)}]}
-        )
+        .command({
+          cmd: 'foo',
+          desc: 'foo command',
+          builder: () => {},
+          handler: _argv => new Error('should not have been called'),
+          middleware: [{f: _argv => Promise.reject(error)}],
+        })
         .fail((msg, err) => {
           expect(msg).to.equal(null);
           expect(err).to.equal(error);
@@ -425,12 +441,12 @@ describe('middleware', () => {
 
     it('it allows middleware rejection to be caught', async () => {
       const argvPromise = ljos('cmd1')
-        .command(
-          'cmd1',
-          'cmd1 desc',
-          () => {},
-          () => {}
-        )
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: () => {},
+          handler: () => {},
+        })
         .middleware({
           f: async () => {
             return new Promise((resolve, reject) => {
@@ -453,19 +469,19 @@ describe('middleware', () => {
     it('it awaits middleware before awaiting handler, when applyBeforeValidation is "false"', async () => {
       let log = '';
       const argvPromise = ljos('foo --bar')
-        .command(
-          'foo',
-          'foo command',
-          () => {},
-          async () => {
+        .command({
+          cmd: 'foo',
+          desc: 'foo command',
+          builder: () => {},
+          handler: async () => {
             return new Promise(resolve => {
               setTimeout(() => {
                 log += 'handler';
                 return resolve();
               }, 5);
             });
-          }
-        )
+          },
+        })
         .middleware({
           applyBeforeValidation: false,
           f: async argv => {
@@ -494,28 +510,26 @@ describe('middleware', () => {
         });
 
       const argvPromise = ljos('foo hello')
-        .command(
-          'foo <pos>',
-          'foo command',
-          ljos =>
+        .command({
+          cmd: 'foo <pos>',
+          desc: 'foo command',
+          builder: ljos =>
             ljos
               .positional('pos', {type: 'string', required: true})
               .option('hello', {type: 'string', required: true})
               .option('foo', {type: 'string', required: true}),
-          () => {},
-          {
-            middleware: [
-              {
-                applyBeforeValidation: true,
-                f: asyncMwFactory('hello', 'world'),
-              },
-              {
-                applyBeforeValidation: true,
-                f: asyncMwFactory('foo', 'bar'),
-              },
-            ],
-          }
-        )
+          handler: () => {},
+          middleware: [
+            {
+              applyBeforeValidation: true,
+              f: asyncMwFactory('hello', 'world'),
+            },
+            {
+              applyBeforeValidation: true,
+              f: asyncMwFactory('foo', 'bar'),
+            },
+          ],
+        })
         .exitProcess(false)
         .parse();
 
@@ -527,8 +541,12 @@ describe('middleware', () => {
     it('calls an async middleware only once for nested subcommands', async () => {
       let callCount = 0;
       const argvPromise = ljos('cmd subcmd')
-        .command('cmd', 'cmd command', ljos => {
-          ljos.command('subcmd', 'subcmd desc');
+        .command({
+          cmd: 'cmd',
+          desc: 'cmd command',
+          builder: ljos => {
+            ljos.command({cmd: 'subcmd', desc: 'subcmd desc'});
+          },
         })
         .middleware({
           f: argv =>
@@ -550,9 +568,11 @@ describe('middleware', () => {
     describe('$0', () => {
       it('applies global middleware when no commands are provided, with $0', async () => {
         const argv = await ljos('--foo 99')
-          .command('$0', 'default command', ljos =>
-            ljos.option('foo', {type: 'number'})
-          )
+          .command({
+            cmd: '$0',
+            desc: 'default command',
+            builder: ljos => ljos.option('foo', {type: 'number'}),
+          })
           .middleware({
             f: argv => {
               return new Promise(resolve => {
@@ -569,11 +589,14 @@ describe('middleware', () => {
 
       it('applies middleware before performing validation, with implied $0', async () => {
         const argvEventual = ljos('--foo 100')
-          .command('$0', 'default command', ljos =>
-            ljos
-              .option('foo', {type: 'number'})
-              .option('bar', {type: 'string', required: true})
-          )
+          .command({
+            cmd: '$0',
+            desc: 'default command',
+            builder: ljos =>
+              ljos
+                .option('foo', {type: 'number'})
+                .option('bar', {type: 'string', required: true}),
+          })
           .middleware({
             applyBeforeValidation: true,
             f: async argv => {
@@ -595,7 +618,11 @@ describe('middleware', () => {
 
       it('applies middleware before performing validation, with explicit $0', async () => {
         const argvPromise = ljos('--foo 100')
-          .command('$0', 'usage', ljos => ljos.option('foo', {type: 'number'}))
+          .command({
+            cmd: '$0',
+            desc: 'usage',
+            builder: ljos => ljos.option('foo', {type: 'number'}),
+          })
           .option('bar', {
             required: true,
           })
@@ -625,9 +652,11 @@ describe('middleware', () => {
     // TODO: no commands -> default command (I don't want implicit commands)
     it('applies global middleware when no commands are provided', () => {
       const argv = ljos('--foo 99')
-        .command('$0', 'default command', ljos =>
-          ljos.option('foo', {type: 'number', required: true})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default command',
+          builder: ljos => ljos.option('foo', {type: 'number', required: true}),
+        })
         .middleware({
           f: argv => {
             argv.foo = argv.foo * 2;
@@ -638,14 +667,14 @@ describe('middleware', () => {
     });
     it('applies global middleware when default command is provided, with explicit $0', () => {
       const argv = ljos('--foo 100')
-        .command(
-          '$0',
-          'default command',
-          ljos => ljos.option('foo', {type: 'number', required: true}),
-          argv => {
+        .command({
+          cmd: '$0',
+          desc: 'default command',
+          builder: ljos => ljos.option('foo', {type: 'number', required: true}),
+          handler: argv => {
             argv.foo = argv.foo * 3;
-          }
-        )
+          },
+        })
         .middleware({
           f: argv => {
             argv.foo = argv.foo * 2;
@@ -656,17 +685,20 @@ describe('middleware', () => {
     });
     it('applies middleware before performing validation, with implicit $0', () => {
       const argv = ljos('--foo 100')
-        .command('$0', 'default command', ljos =>
-          ljos
-            .option('foo', {
-              type: 'number',
-              required: true,
-            })
-            .option('bar', {
-              type: 'string',
-              required: true,
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default command',
+          builder: ljos =>
+            ljos
+              .option('foo', {
+                type: 'number',
+                required: true,
+              })
+              .option('bar', {
+                type: 'string',
+                required: true,
+              }),
+        })
         .middleware({
           applyBeforeValidation: true,
           f: argv => {
@@ -701,9 +733,11 @@ describe('middleware', () => {
   it('throws error if middleware is not function', () => {
     assert.throws(() => {
       ljos('snuh --foo 99')
-        .command('snuh', 'snuh desc', ljos =>
-          ljos.option('foo', {type: 'number'})
-        )
+        .command({
+          cmd: 'snuh',
+          desc: 'snuh desc',
+          builder: ljos => ljos.option('foo', {type: 'number'}),
+        })
         .middleware('hello')
         .parse();
     }, /Expected function/);
@@ -714,9 +748,11 @@ describe('middleware', () => {
     describe('success', () => {
       it('returns promise if check is async', async () => {
         const argvPromise = ljos('--foo 100')
-          .command('$0', 'default command', ljos =>
-            ljos.option('foo', {type: 'number'})
-          )
+          .command({
+            cmd: '$0',
+            desc: 'default command',
+            builder: ljos => ljos.option('foo', {type: 'number'}),
+          })
           .middleware({
             applyBeforeValidation: true,
             f: argv => {
@@ -734,9 +770,11 @@ describe('middleware', () => {
       });
       it('returns promise if check and middleware is async', async () => {
         const argvPromise = ljos('--foo 100')
-          .command('$0', 'default command', ljos =>
-            ljos.option('foo', {type: 'number'})
-          )
+          .command({
+            cmd: '$0',
+            desc: 'default command',
+            builder: ljos => ljos.option('foo', {type: 'number'}),
+          })
           .middleware({
             applyBeforeValidation: true,
             f: async argv => {
@@ -756,20 +794,20 @@ describe('middleware', () => {
       it('allows async check to be used with command', async () => {
         let output = '';
         const argv = await ljos('cmd --foo 300')
-          .command(
-            'cmd',
-            'a command',
-            ljos =>
+          .command({
+            cmd: 'cmd',
+            desc: 'a command',
+            builder: ljos =>
               ljos.option('foo', {type: 'number'}).check(async argv => {
                 wait();
                 output += 'first';
                 return argv.foo >= 200;
               }),
-            async _argv => {
+            handler: async _argv => {
               wait();
               output += 'second';
-            }
-          )
+            },
+          })
           .parse();
         argv._.should.include('cmd');
         argv.foo.should.equal(300);
@@ -778,31 +816,29 @@ describe('middleware', () => {
       it('allows async check to be used with command and middleware', async () => {
         let output = '';
         const argv = await ljos('cmd --foo 100')
-          .command(
-            'cmd',
-            'a command',
-            ljos =>
+          .command({
+            cmd: 'cmd',
+            desc: 'a command',
+            builder: ljos =>
               ljos.option('foo', {type: 'number'}).check(async argv => {
                 await wait();
                 output += 'second';
                 return argv.foo >= 200;
               }),
-            async _argv => {
+            handler: async _argv => {
               await wait();
               output += 'fourth';
             },
-            {
-              middleware: [
-                {
-                  f: async argv => {
-                    await wait();
-                    output += 'third';
-                    argv.foo *= 2;
-                  },
+            middleware: [
+              {
+                f: async argv => {
+                  await wait();
+                  output += 'third';
+                  argv.foo *= 2;
                 },
-              ],
-            }
-          )
+              },
+            ],
+          })
           .middleware({
             applyBeforeValidation: true,
             f: async argv => {
@@ -821,10 +857,12 @@ describe('middleware', () => {
       it('allows failed check to be caught', async () => {
         await assert.rejects(
           ljos('--f 33')
-            .command('$0', 'default command', ljos =>
-              ljos.option('foo', {type: 'number', aliases: ['f']})
-            )
-            // .alias('foo', 'f')
+            .command({
+              cmd: '$0',
+              desc: 'default command',
+              builder: ljos =>
+                ljos.option('foo', {type: 'number', aliases: ['f']}),
+            })
             .fail(false)
             .check(async argv => {
               wait();
@@ -839,21 +877,21 @@ describe('middleware', () => {
         await assert.rejects(
           ljos('cmd --foo 100')
             .fail(false)
-            .command(
-              'cmd',
-              'a command',
-              ljos => {
+            .command({
+              cmd: 'cmd',
+              desc: 'a command',
+              builder: ljos => {
                 ljos.option('foo', {type: 'number'}).check(async argv => {
                   wait();
                   output += 'first';
                   return argv.foo >= 200;
                 });
               },
-              async _argv => {
+              handler: async _argv => {
                 wait();
                 output += 'second';
-              }
-            )
+              },
+            })
             .parse(),
           /Argument check failed/
         );
@@ -864,32 +902,30 @@ describe('middleware', () => {
         await assert.rejects(
           ljos('cmd --foo 10')
             .fail(false)
-            .command(
-              'cmd',
-              'a command',
-              ljos => {
+            .command({
+              cmd: 'cmd',
+              desc: 'a command',
+              builder: ljos => {
                 ljos.option('foo', {type: 'number'}).check(async argv => {
                   wait();
                   output += 'second';
                   return argv.foo >= 200;
                 });
               },
-              async _argv => {
+              handler: async _argv => {
                 wait();
                 output += 'fourth';
               },
-              {
-                middleware: [
-                  {
-                    f: async argv => {
-                      wait();
-                      output += 'third';
-                      argv.foo *= 2;
-                    },
+              middleware: [
+                {
+                  f: async argv => {
+                    wait();
+                    output += 'third';
+                    argv.foo *= 2;
                   },
-                ],
-              }
-            )
+                },
+              ],
+            })
             .middleware({
               applyBeforeValidation: true,
               f: async argv => {
@@ -906,9 +942,11 @@ describe('middleware', () => {
     });
     it('applies aliases prior to calling check', async () => {
       const argv = await ljos('--f 99')
-        .command('$0', 'default command', ljos =>
-          ljos.option('foo', {type: 'number', aliases: ['f']})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default command',
+          builder: ljos => ljos.option('foo', {type: 'number', aliases: ['f']}),
+        })
         .check(async argv => {
           wait();
           return argv.foo > 50;
@@ -921,24 +959,30 @@ describe('middleware', () => {
   describe('async coerce', () => {
     it('allows two commands to register different coerce methods', async () => {
       const y = ljos()
-        .command('command1', 'first command', ljos =>
-          ljos.option('foo', {
-            type: 'string',
-            coerce: async arg => {
-              wait();
-              return new Date(arg);
-            },
-          })
-        )
-        .command('command2', 'second command', ljos =>
-          ljos.option('foo', {
-            type: 'string',
-            coerce: async arg => {
-              wait();
-              return new Number(arg);
-            },
-          })
-        )
+        .command({
+          cmd: 'command1',
+          desc: 'first command',
+          builder: ljos =>
+            ljos.option('foo', {
+              type: 'string',
+              coerce: async arg => {
+                wait();
+                return new Date(arg);
+              },
+            }),
+        })
+        .command({
+          cmd: 'command2',
+          desc: 'second command',
+          builder: ljos =>
+            ljos.option('foo', {
+              type: 'string',
+              coerce: async arg => {
+                wait();
+                return new Number(arg);
+              },
+            }),
+        })
         .option('foo', {
           type: 'string',
           coerce: async _arg => {
@@ -953,17 +997,20 @@ describe('middleware', () => {
     it('coerce is applied to argument and aliases', async () => {
       let callCount = 0;
       const argvPromise = ljos('-f, 2014')
-        .command('$0', 'default command', ljos =>
-          ljos.option('foo', {
-            type: 'idk',
-            aliases: ['f'],
-            coerce: async arg => {
-              wait();
-              callCount++;
-              return new Date(arg.toString());
-            },
-          })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default command',
+          builder: ljos =>
+            ljos.option('foo', {
+              type: 'idk',
+              aliases: ['f'],
+              coerce: async arg => {
+                wait();
+                callCount++;
+                return new Date(arg.toString());
+              },
+            }),
+        })
         .parse();
       (!!argvPromise.then).should.equal(true);
       const argv = await argvPromise;
@@ -973,16 +1020,19 @@ describe('middleware', () => {
     });
     it('applies coerce before validation', async () => {
       const argv = await ljos('--foo 5')
-        .command('$0', 'default command', ljos =>
-          ljos.option('foo', {
-            type: 'number',
-            choices: [10, 20, 30],
-            coerce: async arg => {
-              wait();
-              return (arg *= 2);
-            },
-          })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default command',
+          builder: ljos =>
+            ljos.option('foo', {
+              type: 'number',
+              choices: [10, 20, 30],
+              coerce: async arg => {
+                wait();
+                return (arg *= 2);
+              },
+            }),
+        })
         .parse();
       argv.foo.should.equal(10);
     });
@@ -990,16 +1040,19 @@ describe('middleware', () => {
       await assert.rejects(
         ljos()
           .fail(false)
-          .command('$0', 'default command', ljos =>
-            ljos.option('foo', {
-              type: 'number',
-              choices: [10, 20, 30],
-              coerce: async arg => {
-                await wait();
-                return (arg *= 2);
-              },
-            })
-          )
+          .command({
+            cmd: '$0',
+            desc: 'default command',
+            builder: ljos =>
+              ljos.option('foo', {
+                type: 'number',
+                choices: [10, 20, 30],
+                coerce: async arg => {
+                  await wait();
+                  return (arg *= 2);
+                },
+              }),
+          })
           .parse('--foo 2'),
         /Choices: 10, 20, 30/
       );

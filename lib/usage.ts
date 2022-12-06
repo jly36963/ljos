@@ -771,7 +771,7 @@ export interface UsageInstance {
   hasCachedHelpMessage(): boolean;
   command(
     cmd: string,
-    description: string | undefined,
+    desc: string | undefined,
     isDefault: boolean,
     aliases: string[],
     deprecated?: boolean

@@ -16,13 +16,13 @@ describe('validation tests', () => {
   describe('check', () => {
     it('fails if error is thrown in check callback', done => {
       ljos
-        .command(
-          '$0',
-          'default command desc',
-          ljos =>
+        .command({
+          cmd: '$0',
+          desc: 'default command desc',
+          builder: ljos =>
             ljos
               .option('name', {
-                description: 'name desc',
+                desc: 'name desc',
                 type: 'string',
                 alias: 'n',
               })
@@ -33,10 +33,10 @@ describe('validation tests', () => {
                 }
                 return true;
               }),
-          () => {
+          handler: () => {
             expect.fail();
-          }
-        )
+          },
+        })
         .fail(() => {
           return done();
         })
@@ -45,13 +45,13 @@ describe('validation tests', () => {
 
     it('does not fail if error is not thrown in check callback, and true is returned', () => {
       ljos
-        .command(
-          '$0',
-          'default command desc',
-          ljos =>
+        .command({
+          cmd: '$0',
+          desc: 'default command desc',
+          builder: ljos =>
             ljos
               .option('name', {
-                description: 'version desc',
+                desc: 'version desc',
                 type: 'string',
                 alias: 'n',
               })
@@ -62,8 +62,8 @@ describe('validation tests', () => {
                 }
                 return true;
               }),
-          argv => argv
-        )
+          handler: argv => argv,
+        })
         .fail(() => {
           expect.fail();
         })
@@ -72,13 +72,13 @@ describe('validation tests', () => {
 
     it('callback has access to options', () => {
       ljos
-        .command(
-          '$0',
-          'default command desc',
-          ljos =>
+        .command({
+          cmd: '$0',
+          desc: 'default command desc',
+          builder: ljos =>
             ljos
               .option('name', {
-                description: 'name desc',
+                desc: 'name desc',
                 type: 'string',
                 alias: 'n',
               })
@@ -94,8 +94,8 @@ describe('validation tests', () => {
                 }
                 return true;
               }),
-          argv => argv
-        )
+          handler: argv => argv,
+        })
         .fail(() => {
           expect.fail();
         })
@@ -112,15 +112,18 @@ describe('validation tests', () => {
       let failed = false;
 
       ljos(['cat'])
-        .command('$0 <animal>', 'default command', ljos =>
-          ljos
-            .positional('animal', {
-              type: 'string',
-              required: true,
-              implies: ['foo'],
-            })
-            .option('foo', {type: 'string'})
-        )
+        .command({
+          cmd: '$0 <animal>',
+          desc: 'default command',
+          builder: ljos =>
+            ljos
+              .positional('animal', {
+                type: 'string',
+                required: true,
+                implies: ['foo'],
+              })
+              .option('foo', {type: 'string'}),
+        })
         .fail(msg => {
           msg.should.match(implicationsFailedPattern);
           failed = true;
@@ -133,11 +136,14 @@ describe('validation tests', () => {
     it("fails if key implies values in '_', but '_' is not populated", () => {
       let failed = false;
       ljos(['--foo'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('foo', {type: 'boolean', implies: ['animal']})
-            .positional('animal', {type: 'string'})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('foo', {type: 'boolean', implies: ['animal']})
+              .positional('animal', {type: 'string'}),
+        })
         .fail(msg => {
           msg.should.match(implicationsFailedPattern);
           failed = true;
@@ -165,16 +171,19 @@ describe('validation tests', () => {
         let failed = false;
         let msg;
 
-        const program = ljos().command('$0', 'default desc', ljos =>
-          ljos
-            .option('b', {type: 'boolean'})
-            .option('c', {type: 'boolean'})
-            .option('f', {type: 'boolean', implies: ['b', 'c']})
-            .fail(m => {
-              msg = m;
-              failed = true;
-            })
-        );
+        const program = ljos().command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('b', {type: 'boolean'})
+              .option('c', {type: 'boolean'})
+              .option('f', {type: 'boolean', implies: ['b', 'c']})
+              .fail(m => {
+                msg = m;
+                failed = true;
+              }),
+        });
         program.parse(args);
         msg.should.match(failMessageMatch);
         msg.should.not.match(failMessageNotMatch);
@@ -226,11 +235,14 @@ describe('validation tests', () => {
 
     it("doesn't fail if implied key exists with value 0", () => {
       ljos('--foo --bar 0')
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('foo', {type: 'boolean', implies: ['bar']})
-            .option('bar', {type: 'number'})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('foo', {type: 'boolean', implies: ['bar']})
+              .option('bar', {type: 'number'}),
+        })
         .fail(() => {
           expect.fail();
         })
@@ -239,11 +251,14 @@ describe('validation tests', () => {
 
     it("doesn't fail if implied key exists with value false", () => {
       ljos('--foo --bar false')
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('foo', {type: 'boolean', implies: ['bar']})
-            .option('foo', {type: 'boolean'})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('foo', {type: 'boolean', implies: ['bar']})
+              .option('foo', {type: 'boolean'}),
+        })
         .fail(() => {
           expect.fail();
         })
@@ -301,11 +316,14 @@ describe('validation tests', () => {
     it('allows key to be specified with option shorthand', () => {
       let failed = false;
       ljos('--bar')
-        .command('$0', 'default desc', ljos =>
-          ljos.option('bar', {
-            implies: ['foo'],
-          })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos.option('bar', {
+              implies: ['foo'],
+            }),
+        })
         .fail(msg => {
           msg.should.match(implicationsFailedPattern);
           failed = true;
@@ -320,11 +338,14 @@ describe('validation tests', () => {
     it('fails if both arguments are supplied', () => {
       let failed = false;
       ljos(['-f', '-b'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('f', {type: 'boolean', conflicts: ['b']})
-            .option('b', {type: 'boolean'})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('f', {type: 'boolean', conflicts: ['b']})
+              .option('b', {type: 'boolean'}),
+        })
         .fail(msg => {
           msg.should.equal('Arguments f and b are mutually exclusive');
           failed = true;
@@ -350,16 +371,19 @@ describe('validation tests', () => {
         let msg;
         let failed = false;
 
-        const program = ljos().command('$0', 'default desc', ljos =>
-          ljos
-            .option('f', {type: 'boolean', conflicts: ['b', 'c']})
-            .option('b', {type: 'boolean'})
-            .option('c', {type: 'boolean'})
-            .fail(m => {
-              msg = m;
-              failed = true;
-            })
-        );
+        const program = ljos().command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('f', {type: 'boolean', conflicts: ['b', 'c']})
+              .option('b', {type: 'boolean'})
+              .option('c', {type: 'boolean'})
+              .fail(m => {
+                msg = m;
+                failed = true;
+              }),
+        });
         program.parse(args);
         msg.should.equal(failMessage);
         failed.should.equal(true);
@@ -369,16 +393,19 @@ describe('validation tests', () => {
     it('fails if conflicting arguments are provided', () => {
       let failed = false;
       ljos('--foo-foo a --bar-bar b')
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('foo-foo', {
-              type: 'string',
-              conflicts: ['bar-bar'],
-            })
-            .option('bar-bar', {
-              type: 'string',
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('foo-foo', {
+                type: 'string',
+                conflicts: ['bar-bar'],
+              })
+              .option('bar-bar', {
+                type: 'string',
+              }),
+        })
         .fail(msg => {
           expect(msg).to.not.equal(null);
           msg.should.match(
@@ -393,12 +420,15 @@ describe('validation tests', () => {
 
     it('should not fail if no conflicting arguments are provided', () => {
       ljos(['-b', '-c'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('b', {type: 'boolean'})
-            .option('c', {type: 'boolean'})
-            .option('f', {type: 'boolean', conflicts: ['b', 'c']})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('b', {type: 'boolean'})
+              .option('c', {type: 'boolean'})
+              .option('f', {type: 'boolean', conflicts: ['b', 'c']}),
+        })
         .fail(_msg => {
           expect.fail();
         })
@@ -407,12 +437,15 @@ describe('validation tests', () => {
 
     it('should not fail if argument with conflict is provided, but not the argument it conflicts with', () => {
       ljos(['cmd1', '-f', '-c'])
-        .command('cmd1', 'cmd1 desc', ljos =>
-          ljos
-            .option('b', {type: 'boolean'})
-            .option('c', {type: 'boolean'})
-            .option('f', {type: 'boolean', conflicts: ['b']})
-        )
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos =>
+            ljos
+              .option('b', {type: 'boolean'})
+              .option('c', {type: 'boolean'})
+              .option('f', {type: 'boolean', conflicts: ['b']}),
+        })
         .fail(_msg => {
           expect.fail();
         })
@@ -421,12 +454,15 @@ describe('validation tests', () => {
 
     it('should not fail if conflicting argument is provided, without argument with conflict', () => {
       ljos(['command', '-b', '-c'])
-        .command('cmd1', 'cmd1 desc', ljos =>
-          ljos
-            .option('b', {type: 'boolean'})
-            .option('c', {type: 'boolean'})
-            .option('f', {type: 'boolean', conflicts: ['b']})
-        )
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos =>
+            ljos
+              .option('b', {type: 'boolean'})
+              .option('c', {type: 'boolean'})
+              .option('f', {type: 'boolean', conflicts: ['b']}),
+        })
         .fail(_msg => {
           expect.fail();
         })
@@ -450,12 +486,15 @@ describe('validation tests', () => {
     it('takes into account aliases when applying conflicts logic', () => {
       let failed = false;
       ljos(['-t', '-c'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('a', {type: 'boolean'})
-            .option('c', {type: 'boolean', aliases: ['s'], conflicts: ['a']})
-            .option('t', {type: 'boolean', conflicts: ['s']})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('a', {type: 'boolean'})
+              .option('c', {type: 'boolean', aliases: ['s'], conflicts: ['a']})
+              .option('t', {type: 'boolean', conflicts: ['s']}),
+        })
         .fail(msg => {
           msg.should.equal('Arguments t and s are mutually exclusive');
           failed = true;
@@ -468,11 +507,14 @@ describe('validation tests', () => {
     it('allows key to be specified with option shorthand', () => {
       let failed = false;
       ljos(['-f', '-b'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('b', {type: 'boolean'})
-            .option('f', {type: 'boolean', conflicts: ['b']})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('b', {type: 'boolean'})
+              .option('f', {type: 'boolean', conflicts: ['b']}),
+        })
         .fail(msg => {
           msg.should.equal('Arguments f and b are mutually exclusive');
           failed = true;
@@ -485,11 +527,14 @@ describe('validation tests', () => {
     it('should fail if alias of conflicting argument is provided', () => {
       let failed = false;
       ljos(['-f', '--batman=99'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('f', {type: 'boolean', conflicts: ['b']})
-            .option('batman', {type: 'number', aliases: ['b']})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('f', {type: 'boolean', conflicts: ['b']})
+              .option('batman', {type: 'number', aliases: ['b']}),
+        })
         .fail(msg => {
           msg.should.equal('Arguments f and b are mutually exclusive');
           failed = true;
@@ -501,11 +546,18 @@ describe('validation tests', () => {
     it('should fail if alias of argument with conflict is provided', () => {
       let failed = false;
       ljos(['--f', '-b'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('foo', {type: 'boolean', aliases: ['f'], conflicts: ['b']})
-            .option('b', {type: 'boolean'})
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('foo', {
+                type: 'boolean',
+                aliases: ['f'],
+                conflicts: ['b'],
+              })
+              .option('b', {type: 'boolean'}),
+        })
         .fail(msg => {
           msg.should.equal('Arguments foo and b are mutually exclusive');
           failed = true;
@@ -526,11 +578,14 @@ describe('validation tests', () => {
       loadLocale('pirate');
       try {
         ljos(['-f', '-b'])
-          .command('$0', 'default desc', ljos =>
-            ljos
-              .option('f', {type: 'boolean', conflicts: ['b']})
-              .option('b', {type: 'boolean'})
-          )
+          .command({
+            cmd: '$0',
+            desc: 'default desc',
+            builder: ljos =>
+              ljos
+                .option('f', {type: 'boolean', conflicts: ['b']})
+                .option('b', {type: 'boolean'}),
+          })
           .fail(msg => {
             msg.should.equal(
               'Yon scurvy dogs f and b be as bad as rum and a prudish wench'
@@ -589,8 +644,8 @@ describe('validation tests', () => {
     it('fails in strict mode with invalid command', () => {
       let failed = false;
       ljos(['koala'])
-        .command('wombat', 'wombat burrows')
-        .command('kangaroo', 'kangaroo handlers')
+        .command({cmd: 'wombat', desc: 'wombat burrows'})
+        .command({cmd: 'kangaroo', desc: 'kangaroo handlers'})
         .demandCommand(1)
         .strict()
         .fail(msg => {
@@ -603,7 +658,7 @@ describe('validation tests', () => {
 
     it('fails in strict mode with extra positionals', done => {
       ljos(['kangaroo', 'jumping', 'fast'])
-        .command('kangaroo <status>', 'kangaroo handlers')
+        .command({cmd: 'kangaroo <status>', desc: 'kangaroo handlers'})
         .strict()
         .fail(msg => {
           msg.should.equal('Unknown argument: fast');
@@ -615,7 +670,7 @@ describe('validation tests', () => {
 
     it('fails in strict mode with extra positionals for default command', done => {
       ljos(['jumping', 'fast'])
-        .command('$0 <status>', 'kangaroo handlers')
+        .command({cmd: '$0 <status>', desc: 'kangaroo handlers'})
         .strict()
         .fail(msg => {
           msg.should.equal('Unknown argument: fast');
@@ -639,9 +694,12 @@ describe('validation tests', () => {
     // addresses: https://github.com/ljos/ljos/issues/791
     it('should recognize config variables in strict mode', () => {
       const argv = ljos('foo 99')
-        .command('foo <y>', 'foo desc', ljos =>
-          ljos.positional('y', {type: 'number', required: true})
-        )
+        .command({
+          cmd: 'foo <y>',
+          desc: 'foo desc',
+          builder: ljos =>
+            ljos.positional('y', {type: 'number', required: true}),
+        })
         .strict()
         .option('x', {type: 'number'})
         .config({x: 33})
@@ -655,16 +713,20 @@ describe('validation tests', () => {
     // addresses: https://github.com/ljos/ljos/issues/791
     it('should recognize config variables in strict mode, when running sub-commands', () => {
       const argv = ljos('cmd1 subcmd1 --y=22')
-        .command('cmd1', 'cmd1 desc', ljos => {
-          ljos
-            .command('subcmd1', 'subcmd1 desc')
-            .option('y', {
-              description: 'y inner option',
-              type: 'number',
-            })
-            .fail(_msg => {
-              expect.fail();
-            });
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos => {
+            ljos
+              .command({cmd: 'subcmd1', desc: 'subcmd1 desc'})
+              .option('y', {
+                desc: 'y inner option',
+                type: 'number',
+              })
+              .fail(_msg => {
+                expect.fail();
+              });
+          },
         })
         .option('x', {type: 'number'})
         .config({x: 33})
@@ -729,10 +791,14 @@ describe('validation tests', () => {
     it('interprets min relative to command', () => {
       let failureMsg;
       ljos('lint')
-        .command('lint', 'Lint a file', ljos => {
-          ljos.demandCommand(1).fail(msg => {
-            failureMsg = msg;
-          });
+        .command({
+          cmd: 'lint',
+          desc: 'Lint a file',
+          builder: ljos => {
+            ljos.demandCommand(1).fail(msg => {
+              failureMsg = msg;
+            });
+          },
         })
         .parse();
       expect(failureMsg).to.equal(
@@ -743,10 +809,14 @@ describe('validation tests', () => {
     it('interprets max relative to command', () => {
       let failureMsg;
       ljos('lint one.js two.js')
-        .command('lint', 'Lint a file', ljos => {
-          ljos.demandCommand(0, 1).fail(msg => {
-            failureMsg = msg;
-          });
+        .command({
+          cmd: 'lint',
+          desc: 'Lint a file',
+          builder: ljos => {
+            ljos.demandCommand(0, 1).fail(msg => {
+              failureMsg = msg;
+            });
+          },
         })
         .parse();
       expect(failureMsg).to.equal(
@@ -837,10 +907,12 @@ describe('validation tests', () => {
 
     it('does not fail if argument with required value is not provided to subcommand', () => {
       ljos('woo')
-        .command('$0', 'default desc', ljos =>
-          ljos.option('w', {type: 'number', required: true})
-        )
-        .command('woo', 'woo desc')
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos => ljos.option('w', {type: 'number', required: true}),
+        })
+        .command({cmd: 'woo', desc: 'woo desc'})
         .fail(_msg => expect.fail())
         .parse();
     });
@@ -850,22 +922,25 @@ describe('validation tests', () => {
     it('fails with one invalid value', () => {
       let failed = false;
       ljos(['--state', 'denial'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('state', {
-              type: 'string',
-              choices: ['happy', 'sad', 'hungry'],
-            })
-            .fail(msg => {
-              msg
-                .split('\n')
-                .should.deep.equal([
-                  'Invalid values:',
-                  '  Argument: state, Given: "denial", Choices: "happy", "sad", "hungry"',
-                ]);
-              failed = true;
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('state', {
+                type: 'string',
+                choices: ['happy', 'sad', 'hungry'],
+              })
+              .fail(msg => {
+                msg
+                  .split('\n')
+                  .should.deep.equal([
+                    'Invalid values:',
+                    '  Argument: state, Given: "denial", Choices: "happy", "sad", "hungry"',
+                  ]);
+                failed = true;
+              }),
+        })
         .parse();
 
       failed.should.equal(true);
@@ -874,22 +949,25 @@ describe('validation tests', () => {
     it('fails with one valid and one invalid value', () => {
       let failed = false;
       ljos(['--characters', 'susie', '--characters', 'linus'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('characters', {
-              type: 'string',
-              choices: ['calvin', 'hobbes', 'susie', 'moe'],
-            })
-            .fail(msg => {
-              msg
-                .split('\n')
-                .should.deep.equal([
-                  'Invalid values:',
-                  '  Argument: characters, Given: "linus", Choices: "calvin", "hobbes", "susie", "moe"',
-                ]);
-              failed = true;
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('characters', {
+                type: 'string',
+                choices: ['calvin', 'hobbes', 'susie', 'moe'],
+              })
+              .fail(msg => {
+                msg
+                  .split('\n')
+                  .should.deep.equal([
+                    'Invalid values:',
+                    '  Argument: characters, Given: "linus", Choices: "calvin", "hobbes", "susie", "moe"',
+                  ]);
+                failed = true;
+              }),
+        })
         .parse();
       failed.should.equal(true);
     });
@@ -897,23 +975,26 @@ describe('validation tests', () => {
     it('fails with multiple invalid values for same argument', () => {
       let failed = false;
       ljos(['--category', 'comedy', '--category', 'drama'])
-        .command('$0', 'default command', ljos =>
-          ljos
-            .option('category', {
-              array: true,
-              type: 'string',
-              choices: ['animal', 'vegetable', 'mineral'],
-            })
-            .fail(msg => {
-              msg
-                .split('\n')
-                .should.deep.equal([
-                  'Invalid values:',
-                  '  Argument: category, Given: "comedy", "drama", Choices: "animal", "vegetable", "mineral"',
-                ]);
-              failed = true;
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default command',
+          builder: ljos =>
+            ljos
+              .option('category', {
+                array: true,
+                type: 'string',
+                choices: ['animal', 'vegetable', 'mineral'],
+              })
+              .fail(msg => {
+                msg
+                  .split('\n')
+                  .should.deep.equal([
+                    'Invalid values:',
+                    '  Argument: category, Given: "comedy", "drama", Choices: "animal", "vegetable", "mineral"',
+                  ]);
+                failed = true;
+              }),
+        })
         .parse();
       failed.should.equal(true);
     });
@@ -921,22 +1002,25 @@ describe('validation tests', () => {
     it('fails with case-sensitive mismatch', () => {
       let failed = false;
       ljos(['--env', 'DEV'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('env', {
-              type: 'string',
-              choices: ['dev', 'prd'],
-            })
-            .fail(msg => {
-              msg
-                .split('\n')
-                .should.deep.equal([
-                  'Invalid values:',
-                  '  Argument: env, Given: "DEV", Choices: "dev", "prd"',
-                ]);
-              failed = true;
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('env', {
+                type: 'string',
+                choices: ['dev', 'prd'],
+              })
+              .fail(msg => {
+                msg
+                  .split('\n')
+                  .should.deep.equal([
+                    'Invalid values:',
+                    '  Argument: env, Given: "DEV", Choices: "dev", "prd"',
+                  ]);
+                failed = true;
+              }),
+        })
         .parse();
       failed.should.equal(true);
     });
@@ -944,27 +1028,30 @@ describe('validation tests', () => {
     it('fails with multiple invalid arguments', () => {
       let failed = false;
       ljos(['--system', 'osx', '--arch', '64'])
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('system', {
-              type: 'string',
-              choices: ['linux', 'mac', 'windows'],
-            })
-            .option('arch', {
-              type: 'string',
-              choices: ['x86', 'x64', 'arm'],
-            })
-            .fail(msg => {
-              msg
-                .split('\n')
-                .should.deep.equal([
-                  'Invalid values:',
-                  '  Argument: system, Given: "osx", Choices: "linux", "mac", "windows"',
-                  '  Argument: arch, Given: "64", Choices: "x86", "x64", "arm"',
-                ]);
-              failed = true;
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos
+              .option('system', {
+                type: 'string',
+                choices: ['linux', 'mac', 'windows'],
+              })
+              .option('arch', {
+                type: 'string',
+                choices: ['x86', 'x64', 'arm'],
+              })
+              .fail(msg => {
+                msg
+                  .split('\n')
+                  .should.deep.equal([
+                    'Invalid values:',
+                    '  Argument: system, Given: "osx", Choices: "linux", "mac", "windows"',
+                    '  Argument: arch, Given: "64", Choices: "x86", "x64", "arm"',
+                  ]);
+                failed = true;
+              }),
+        })
         .parse();
       failed.should.equal(true);
     });
@@ -972,21 +1059,21 @@ describe('validation tests', () => {
     // addresses: https://github.com/ljos/ljos/issues/849
     it('succeeds when required is true and valid choice is provided', () => {
       ljos('one -a 10 marsupial')
-        .command(
-          'cmd1',
-          'cmd1 desc',
-          ljos => {
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos => {
             ljos.option('a', {
               required: true,
               type: 'number',
               choices: [10, 20],
             });
           },
-          argv => {
+          handler: argv => {
             argv._[0].should.equal('cmd1');
             argv.a.should.equal(10);
-          }
-        )
+          },
+        })
         .fail(_msg => {
           expect.fail();
         })
@@ -997,15 +1084,19 @@ describe('validation tests', () => {
     it('fails when required is true and choice is not provided', () => {
       let failed = false;
       ljos('cmd1 --opt1 10 marsupial')
-        .command('cmd1 <animal>', 'cmd1 desc', ljos => {
-          ljos
-            .positional('animal', {type: 'string', required: true})
-            .option('opt1', {type: 'number'})
-            .option('opt2', {
-              type: 'string',
-              required: true,
-              choices: ['1', '2'],
-            });
+        .command({
+          cmd: 'cmd1 <animal>',
+          desc: 'cmd1 desc',
+          builder: ljos => {
+            ljos
+              .positional('animal', {type: 'string', required: true})
+              .option('opt1', {type: 'number'})
+              .option('opt2', {
+                type: 'string',
+                required: true,
+                choices: ['1', '2'],
+              });
+          },
         })
         .fail(msg => {
           msg.should.equal('Missing required argument: opt2');
@@ -1018,20 +1109,20 @@ describe('validation tests', () => {
     // addresses: https://github.com/ljos/ljos/issues/849
     it('succeeds when required is false and no choice is provided', () => {
       ljos('cmd1')
-        .command(
-          'cmd1',
-          'cmd1 desc',
-          ljos => {
+        .command({
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
+          builder: ljos => {
             ljos.option('a', {
               required: false,
               type: 'number',
               choices: [10, 20],
             });
           },
-          argv => {
+          handler: argv => {
             argv._[0].should.equal('cmd1');
-          }
-        )
+          },
+        })
         .fail(_msg => {
           expect.fail();
         })
@@ -1041,19 +1132,19 @@ describe('validation tests', () => {
     // addresses: https://github.com/ljos/ljos/issues/849
     it('succeeds when required is not provided and no choice is provided', () => {
       ljos('one')
-        .command(
-          'cmd1',
-          'level cmd1',
-          ljos => {
+        .command({
+          cmd: 'cmd1',
+          desc: 'level cmd1',
+          builder: ljos => {
             ljos.option('a', {
               type: 'number',
               choices: [10, 20],
             });
           },
-          argv => {
+          handler: argv => {
             argv._[0].should.equal('cmd1');
-          }
-        )
+          },
+        })
         .fail(_msg => {
           expect.fail();
         })
@@ -1203,7 +1294,7 @@ describe('validation tests', () => {
           throw new Error(msg);
         })
         .option('some-option', {
-          description: 'some option',
+          desc: 'some option',
           required: true,
           default: 88,
         })
@@ -1215,21 +1306,21 @@ describe('validation tests', () => {
   describe('strict mode', () => {
     it('does not fail when command with subcommands called', () => {
       ljos('one')
-        .command(
-          'one',
-          'level one',
-          ljos =>
+        .command({
+          cmd: 'one',
+          desc: 'level one',
+          builder: ljos =>
             ljos
-              .command('twoA', 'level two A')
-              .command('twoB', 'level two B')
+              .command({cmd: 'twoA', desc: 'level two A'})
+              .command({cmd: 'twoB', desc: 'level two B'})
               .strict()
-              .fail(msg => {
+              .fail(_msg => {
                 expect.fail();
               }),
-          argv => {
+          handler: argv => {
             argv._[0].should.equal('one');
-          }
-        )
+          },
+        })
         .parse();
     });
 
@@ -1260,13 +1351,16 @@ describe('validation tests', () => {
     it('does not fail if an alias is provided, rather than option itself', () => {
       const args = ljos('--cat')
         .strict()
-        .command('$0', 'default desc', ljos =>
-          ljos
-            .option('foo', {type: 'boolean', aliases: ['bar', 'cat']})
-            .fail(_msg => {
-              expect.fail();
-            })
-        )
+        .command({
+          cmd: '$0',
+          desc: 'default desc',
+          builder: ljos =>
+            ljos.option('foo', {type: 'boolean', aliases: ['bar', 'cat']}),
+        })
+        .fail(_msg => {
+          console.log({_msg});
+          expect.fail();
+        })
         .parse();
       args.cat.should.equal(true);
       args.foo.should.equal(true);
@@ -1291,9 +1385,9 @@ describe('validation tests', () => {
 
     it('does not fail with options of various types', () => {
       ljos
-        .cmd({
-          command: 'cmd',
-          description: 'cmd desc',
+        .command({
+          cmd: 'cmd',
+          desc: 'cmd desc',
           builder: ljos =>
             ljos
               .option('opt1', {type: 'boolean'})
@@ -1320,12 +1414,15 @@ describe('validation tests', () => {
     it('allows multiple options to be required', () => {
       let failed = false;
       ljos('-a 10 marsupial')
-        .command('$0 <animal>', 'default command', ljos =>
-          ljos
-            .option('a', {type: 'number', required: true})
-            .option('b', {type: 'number', required: true})
-            .positional('animal', {type: 'string', required: true})
-        )
+        .command({
+          cmd: '$0 <animal>',
+          desc: 'default command',
+          builder: ljos =>
+            ljos
+              .option('a', {type: 'number', required: true})
+              .option('b', {type: 'number', required: true})
+              .positional('animal', {type: 'string', required: true}),
+        })
         .fail(msg => {
           msg.should.equal('Missing required argument: b');
           failed = true;
@@ -1420,7 +1517,7 @@ describe('validation tests', () => {
     it('defaults to demanding 1 command', () => {
       let failed = false;
       ljos('-a 10')
-        .command('cmd1', 'cmd1 desc')
+        .command({cmd: 'cmd1', desc: 'cmd1 desc'})
         .option('a', {type: 'number'})
         .demandCommand()
         .fail(msg => {
@@ -1449,9 +1546,11 @@ describe('validation tests', () => {
     it('succeeds in parse if command is known', () => {
       const parsed = ljos('foo -a 10')
         .strictCommands()
-        .command('foo', 'foo command', ljos =>
-          ljos.option('a', {type: 'number'})
-        )
+        .command({
+          cmd: 'foo',
+          desc: 'foo command',
+          builder: ljos => ljos.option('a', {type: 'number'}),
+        })
         .parse();
       parsed.a.should.equal(10);
       parsed._.should.eql(['foo']);
@@ -1460,10 +1559,16 @@ describe('validation tests', () => {
     it('succeeds in parse if top level and inner command are known', () => {
       const parsed = ljos('foo bar --cool beans')
         .strictCommands()
-        .command('foo', 'foo command', ljos => {
-          ljos.command('bar', 'bar desc', ljos =>
-            ljos.option('cool', {type: 'string'})
-          );
+        .command({
+          cmd: 'foo',
+          desc: 'foo command',
+          builder: ljos => {
+            ljos.command({
+              cmd: 'bar',
+              desc: 'bar desc',
+              builder: ljos => ljos.option('cool', {type: 'string'}),
+            });
+          },
         })
         .parse();
       parsed.cool.should.equal('beans');
@@ -1521,8 +1626,12 @@ describe('validation tests', () => {
     it('allows strictCommands to be applied to inner commands', () => {
       let failed = false;
       ljos('foo blarg')
-        .command('foo', 'foo command', ljos => {
-          ljos.command('bar', 'bar desc').strictCommands();
+        .command({
+          cmd: 'foo',
+          desc: 'foo command',
+          builder: ljos => {
+            ljos.command({cmd: 'bar', desc: 'bar desc'}).strictCommands();
+          },
         })
         .fail(msg => {
           msg.should.equal('Unknown command: blarg');
@@ -1536,9 +1645,9 @@ describe('validation tests', () => {
   describe('strictOptions', () => {
     it('succeeds if option is known and command is unknown', () => {
       const argv = ljos('bar -a 10')
-        .command('foo', 'foo command')
+        .command({cmd: 'foo', desc: 'foo command'})
         .option('a', {
-          description: 'a is for option',
+          desc: 'a is for option',
           type: 'number',
         })
         .strictOptions()
@@ -1570,8 +1679,12 @@ describe('validation tests', () => {
     it('allows strict options to be turned off', () => {
       const y = ljos()
         .strictOptions()
-        .command('foo', 'foo command', ljos => {
-          ljos.strictOptions(false);
+        .command({
+          cmd: 'foo',
+          desc: 'foo command',
+          builder: ljos => {
+            ljos.strictOptions(false);
+          },
         });
       y.parse('foo --cool --awesome', err => {
         expect(err).to.equal(null);

@@ -292,46 +292,46 @@ export class LjosInstance {
   /** Set arg that, when provided, will output bash/zsh completion script for use in .bashrc/.zshrc */
   completion(
     cmd?: string,
-    description?: string | false | CompletionFunction,
+    desc?: string | false | CompletionFunction,
     fn?: CompletionFunction
   ): LjosInstance {
     argsert(
       '[string] [string|boolean|function] [function]',
-      [cmd, description, fn],
+      [cmd, desc, fn],
       arguments.length
     );
 
     // a function to execute when generating
     // completions can be provided as the second
     // or third argument to completion.
-    if (typeof description === 'function') {
-      fn = description;
-      description = undefined;
+    if (typeof desc === 'function') {
+      fn = desc;
+      desc = undefined;
     }
 
     // register the completion command.
     this.#completionCommand = cmd || this.#completionCommand || 'completion';
-    if (!description && description !== false) {
-      description = 'generate completion script';
+    if (!desc && desc !== false) {
+      desc = 'generate completion script';
     }
-    this.command(this.#completionCommand, description, noop, noop);
+    this.#addCommand(this.#completionCommand, desc, noop, noop);
 
     // a function can be provided
     if (fn) this.#completion!.registerFunction(fn);
 
     return this;
   }
-  /** TODO */
-  command(
+  /** Register command */
+  #addCommand(
     cmd: string,
-    description: CommandHandler['description'],
+    desc: CommandHandler['desc'],
     builder: CommandBuilderCallback = noop,
     handler: CommandHandlerCallback = noop,
     config: Partial<CommandConfig> = {}
   ): LjosInstance {
     argsert('<string> <string|boolean> <function> <function> [object]', [
       cmd,
-      description,
+      desc,
       builder,
       handler,
       config,
@@ -346,7 +346,7 @@ export class LjosInstance {
 
     this.#commandInstance.addHandler(
       cmd,
-      description,
+      desc,
       builder,
       handler,
       middlewareWithDefaults,
@@ -355,17 +355,17 @@ export class LjosInstance {
     );
     return this;
   }
-  /** TODO */
-  cmd({
-    command,
-    description = false,
+  /** Register a command */
+  command({
+    cmd,
+    desc = false,
     builder = noop,
     handler = noop,
     middleware = [],
     deprecated = false,
     aliases = [],
   }: CommandHandlerDefinition): LjosInstance {
-    return this.command(command, description, builder, handler, {
+    return this.#addCommand(cmd, desc, builder, handler, {
       aliases,
       middleware,
       deprecated,
@@ -422,16 +422,13 @@ export class LjosInstance {
     return this;
   }
   /** Set example invocations of program */
-  example(
-    cmd: string | [string, string?][],
-    description?: string
-  ): LjosInstance {
-    argsert('<string|array> [string]', [cmd, description], arguments.length);
+  example(cmd: string | [string, string?][], desc?: string): LjosInstance {
+    argsert('<string|array> [string]', [cmd, desc], arguments.length);
 
     if (Array.isArray(cmd)) {
       cmd.forEach(exampleParams => this.example(...exampleParams));
     } else {
-      this.#usage.example(cmd, description);
+      this.#usage.example(cmd, desc);
     }
 
     return this;
@@ -675,13 +672,13 @@ export class LjosInstance {
       this.skipValidation(key);
     }
 
-    const {description} = opt;
+    const {desc} = opt;
     const descriptions = this.#usage.getDescriptions();
     if (
       !Object.prototype.hasOwnProperty.call(descriptions, key) ||
-      typeof description === 'string'
+      typeof desc === 'string'
     ) {
-      this.#describe(key, description);
+      this.#describe(key, desc);
     }
 
     if (opt.hidden) {
@@ -782,7 +779,7 @@ export class LjosInstance {
       'conflicts',
       'coerce',
       'type',
-      'description',
+      'desc',
       'aliases',
     ];
     opts = objFilter(opts, (k, v) => {
@@ -2246,7 +2243,7 @@ export interface OptionDefinition {
   default?: any;
   defaultDescription?: string;
   deprecated?: string | boolean;
-  description?: string;
+  desc?: string;
   global?: boolean;
   group?: string;
   hidden?: boolean;
@@ -2271,7 +2268,7 @@ interface PositionalDefinition
     | 'conflicts'
     | 'default'
     | 'defaultDescription'
-    | 'description'
+    | 'desc'
     | 'implies'
     | 'normalize'
     | 'required'

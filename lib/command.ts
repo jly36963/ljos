@@ -84,7 +84,7 @@ export class CommandInstance {
 
   addHandler(
     cmd: string,
-    description: CommandHandler['description'],
+    desc: CommandHandler['desc'],
     builder: CommandBuilderCallback,
     handler: CommandHandlerCallback,
     middleware: Middleware[] = [],
@@ -134,19 +134,13 @@ export class CommandInstance {
       this.aliasMap[alias] = parsedCommand.cmd;
     });
 
-    if (description !== false) {
-      this.usageInstance.command(
-        cmd,
-        description,
-        isDefault,
-        aliases,
-        deprecated
-      );
+    if (desc !== false) {
+      this.usageInstance.command(cmd, desc, isDefault, aliases, deprecated);
     }
 
     this.handlers[parsedCommand.cmd] = {
       original: cmd,
-      description,
+      desc,
       handler,
       builder,
       middleware,
@@ -288,7 +282,7 @@ export class CommandInstance {
             parentCommands,
             commandHandler
           ),
-          commandHandler.description
+          commandHandler.desc
         );
     }
     const innerArgv = innerLjos
@@ -654,7 +648,7 @@ export class CommandInstance {
       ljos
         .getInternalMethods()
         .getUsageInstance()
-        .usage(commandString, this.defaultCommand.description);
+        .usage(commandString, this.defaultCommand.desc);
     }
     const builder = this.defaultCommand.builder;
     return builder(ljos, true);
@@ -724,19 +718,19 @@ export function command(
 export interface CommandHandlerDefinition
   extends Pick<
     CommandHandler,
-    'deprecated' | 'description' | 'handler' | 'middleware'
+    'deprecated' | 'desc' | 'handler' | 'middleware'
   > {
-  command: string;
+  cmd: string;
   builder: CommandBuilderCallback;
   aliases?: string[];
 }
 
-export interface CommandBuilderDefinition {
-  builder?: CommandBuilderCallback;
-  deprecated?: boolean;
-  handler: CommandHandlerCallback;
-  middlewares?: Middleware[];
-}
+// export interface CommandBuilderDefinition {
+//   builder?: CommandBuilderCallback;
+//   deprecated?: boolean;
+//   handler: CommandHandlerCallback;
+//   middlewares?: Middleware[];
+// }
 
 // export function isCommandBuilderDefinition(
 //   builder?: CommandBuilder | CommandBuilderDefinition
@@ -756,7 +750,7 @@ export interface CommandHandler {
   builder: CommandBuilderCallback;
   demanded: Positional[];
   deprecated?: boolean;
-  description: string | false;
+  desc: string | false;
   handler: CommandHandlerCallback;
   middleware: Middleware[];
   optional: Positional[];

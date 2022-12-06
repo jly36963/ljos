@@ -22,9 +22,9 @@ npm i ljos
 const input = "greet Jimmy";
 
 ljos()
-  .cmd({
-    command: "greet <name>",
-    description: "greet command description",
+  .command({
+    cmd: "greet <name>",
+    desc: "greet command description",
     builder: (ljos) =>
       ljos.positional("name", { type: "string", required: true }),
     handler: (argv) => {
@@ -39,37 +39,15 @@ ljos()
 Hey there, Jimmy!
 ```
 
-### Simple (legacy)
-
-```js
-const input = "greet Timmy";
-
-ljos()
-  .command(
-    "greet <name>",
-    "greet command description",
-    (ljos) => ljos.positional("name", { type: "string", required: true }),
-    (argv) => {
-      const { name } = argv;
-      console.log(`Hey there, ${name}!`);
-    },
-  )
-  .parse(input);
-```
-
-```
-Hey there, Timmy!
-```
-
 ### Default command
 
 ```js
 const input = "Carl";
 
 ljos()
-  .cmd({
-    command: "$0 <name>",
-    description: "default command description",
+  .command({
+    cmd: "$0 <name>",
+    desc: "default command description",
     builder: (ljos) =>
       ljos.positional("name", { type: "string", required: true }),
     handler: (argv) => {
@@ -91,8 +69,8 @@ const input = "greet";
 
 ljos()
   .command({
-    command: "greet [name]",
-    description: "greet command description",
+    cmd: "greet [name]",
+    desc: "greet command description",
     builder: (ljos) => ljos.positional("name", { type: "string" }),
     handler: (argv) => {
       const { name = "friend" } = argv;
@@ -116,19 +94,19 @@ const inputs = {
 };
 
 const program = ljos()
-  .command(
-    "add <a> <b>",
-    "add command description",
-    (ljos) =>
+  .command({
+    cmd: "add <a> <b>",
+    desc: "add command description",
+    builder: (ljos) =>
       ljos
         .positional("a", { type: "number", required: true })
         .positional("b", { type: "number", required: true }),
-    (argv) => {
+    handler: (argv) => {
       const { a, b } = argv;
       const result = a + b;
       console.log(`${a} + ${b} = ${result}`);
     },
-  );
+  });
 
 for (const [name, input] of Object.entries(inputs)) {
   console.log(name);
@@ -155,9 +133,9 @@ function stringToBase64(s) {
 }
 
 ljos()
-  .cmd({
-    command: "greet <first-name> <last-name>",
-    description: "greet command description",
+  .command({
+    cmd: "greet <first-name> <last-name>",
+    desc: "greet command description",
     builder: (ljos) =>
       ljos
         .positional("first-name", { type: "string", required: true })
@@ -190,20 +168,20 @@ Hey there, PATRICK c3Rhcg==!
 const input = "divide 1 2";
 
 ljos()
-  .cmd({
-    command: "divide <a> <b>",
-    description: "divide command description",
+  .command({
+    cmd: "divide <a> <b>",
+    desc: "divide command description",
     builder: (ljos) =>
       ljos
         .positional("a", {
           type: "number",
           required: true,
-          description: "numerator",
+          desc: "numerator",
         })
         .positional("b", {
           type: "number",
           required: true,
-          description: "denominator",
+          desc: "denominator",
         })
         .check((argv) => {
           const { b } = argv;
@@ -236,15 +214,15 @@ const inputs = {
 };
 
 const program = ljos()
-  .cmd({
-    command: "math",
-    description: "math command description",
+  .command({
+    cmd: "math",
+    desc: "math command description",
     builder: (ljos) =>
       ljos
         .demandCommand(1)
-        .cmd({
-          command: "sum <numbers..>",
-          description: "get the sum of numbers",
+        .command({
+          cmd: "sum <numbers..>",
+          desc: "get the sum of numbers",
           builder: (ljos) =>
             ljos.positional("numbers", {
               array: true,
@@ -257,9 +235,9 @@ const program = ljos()
             console.log(`The sum of ${numbers} is ${result}`);
           },
         })
-        .cmd({
-          command: "product <numbers..>",
-          description: "get the sum of numbers",
+        .command({
+          cmd: "product <numbers..>",
+          desc: "get the sum of numbers",
           builder: (ljos) =>
             ljos.positional("numbers", {
               array: true,
@@ -299,32 +277,14 @@ TODO
 
 TODO
 
-## Tasks
-
-- unknown option/positional
-  - parseArgs will treat unknown option as boolean
-  - not sure what happens with positional
-    - eg: `cmd1 <pos1>`with no corresponding `ljos.positional()`
-- argsert for object params
-- fix/remove/address TODO tests
-- strict by default, only return first unknown?
-- demand / requiresArg logic
-- Don't allow mixture of option/positional for a given key
-  - might not be possible,
-  - options/positionals are run through the parser as options (separately)
-- Integrate @types/yargs types
-- Update handling of positionals (allow more flexibility with variadic args)
-  - Determine number of args before/after?
-  - Pick/remove before ones, pick/remove after ones, remaining are variadic.
-  - Raise error if too many are expected
-
 ## Differences from yargs
 
 - unknown options are treated as bool opt and positional
   - builder (`.option`/`positional`) must be used
   - make strict by default?
 - no nargs, count, or fs-related logic (config, etc)
-  - nargs might not be easy or possible (maybe use tokens from parseArgs)
+  - nargs might not be easy or possible
+    - maybe use tokens from parseArgs
   - is there a compelling reason to keep count?
   - I would like to keep fs logic out
     - cjs/esm/deno handle all differently
@@ -338,12 +298,37 @@ TODO
   - param names don't communicate intention
   - use objects intead
 - commands
-  - command: cmd, desc, builder, handler
-  - cmd:
-    `{ command: str, description: str, builder: function, handler: function }`
+  - cmd: `{ cmd: str, desc: str, builder: function, handler: function }`
 - explicit options
   - `cmd1 <pos1>` will need a corresponding
     `yargs.positional('pos1', { /* ... */ })`
 
-```
-```
+## Tasks
+
+- simplify middleware
+  - middleware to modify argv
+  - checks to validate argv
+    - add checks to command obj
+    - do not mutate argv
+    - make callback void, only throw errors
+  - convert validation methods to check middleware helpers
+    - demand / requiresArg logic
+- fix/remove/address TODO tests
+- argsert for object params
+- strict by default, only return first unknown?
+- Integrate @types/yargs types
+
+- unknown option/positional
+  - parseArgs will treat unknown option as boolean
+  - not sure what happens with positional
+    - eg: `cmd1 <pos1>`with no corresponding `ljos.positional()`
+
+- Don't allow mixture of option/positional for a given key
+  - might not be possible,
+  - options/positionals are run through the parser as options (separately)
+- Update handling of positionals (allow more flexibility with variadic args)
+  - Determine number of args before/after?
+  - Pick/remove before ones, pick/remove after ones, remaining are variadic.
+  - Raise error if too many are expected
+- only keep camel-case variants
+  - middleware
