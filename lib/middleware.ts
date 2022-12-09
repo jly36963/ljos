@@ -3,6 +3,7 @@ import {isPromise} from './utils/is-promise.js';
 import {
   Arguments,
   LjosInstance,
+  Options,
   maybePromisePartialArgs,
   maybePromiseArgs,
 } from './ljos-factory.js';
@@ -160,6 +161,8 @@ export type middlewareFunc = (
   argv: Arguments,
   ljos: LjosInstance
 ) => maybePromisePartialArgs;
+
+export type checkFunc = (argv: Arguments, options: Options) => void;
 
 export interface MiddlewareInput {
   f: middlewareFunc;

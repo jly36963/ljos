@@ -4,7 +4,13 @@ import {
   PlatformShim,
 } from './typings/common-types.js';
 import {isPromise} from './utils/is-promise.js';
-import {applyMiddleware, MiddlwareInstance, Middleware} from './middleware.js';
+import {
+  applyMiddleware,
+  MiddlwareInstance,
+  Middleware,
+  MiddlewareInput,
+  checkFunc,
+} from './middleware.js';
 import {parseCommand, Positional} from './parse-command.js';
 import {UsageInstance} from './usage.js';
 import {ValidationInstance} from './validation.js';
@@ -715,14 +721,14 @@ export function command(
   return new CommandInstance(usage, validation, middlewareInstance, shim);
 }
 
+/** User-provided command handler, to be converted into internal command handler */
 export interface CommandHandlerDefinition
-  extends Pick<
-    CommandHandler,
-    'deprecated' | 'desc' | 'handler' | 'middleware'
-  > {
+  extends Pick<CommandHandler, 'deprecated' | 'desc' | 'handler'> {
   cmd: string;
   builder: CommandBuilderCallback;
   aliases?: string[];
+  transforms?: MiddlewareInput[];
+  checks: checkFunc[];
 }
 
 // export interface CommandBuilderDefinition {

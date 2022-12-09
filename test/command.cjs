@@ -653,14 +653,16 @@ describe('Command', () => {
       const cmd = 'foo';
       const desc = "I'm not feeling very creative at the moment";
       const aliases = [];
-      const middleware = [];
+      const checks = [];
+      const transforms = [];
       const module = {
         cmd,
         desc,
         builder: noop,
         handler: noop,
-        middleware,
         aliases,
+        checks,
+        transforms,
       };
       const isDefault = false;
       const deprecated = false;
@@ -2282,7 +2284,8 @@ describe('Command', () => {
               desc,
               builder: noop,
               handler: noop,
-              middleware: [],
+              checks: [],
+              transforms: [],
               deprecated,
             })
             .parse();
@@ -2300,7 +2303,8 @@ describe('Command', () => {
               desc,
               builder: noop,
               handler: noop,
-              middleware: [],
+              checks: [],
+              transforms: [],
               deprecated,
             })
             .parse();
@@ -2576,11 +2580,11 @@ describe('Command', () => {
 
   it('allows async exception in handler to be caught', async () => {
     await assert.rejects(
-      ljos(['mw'])
+      ljos(['cmd1'])
         .fail(false)
         .command({
-          cmd: 'mw',
-          desc: 'adds func to middleware',
+          cmd: 'cmd1',
+          desc: 'cmd1 desc',
           buidler: noop,
           handler: async () => {
             throw Error('not cool');

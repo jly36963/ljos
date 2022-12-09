@@ -27,7 +27,7 @@ describe('middleware', () => {
 
   it('runs the middleware before reaching the handler', () => {
     const argv = ljos(['cmd1'])
-      .middleware({
+      .transform({
         f: argv => {
           argv.opt1 = 'abc';
         },
@@ -43,7 +43,7 @@ describe('middleware', () => {
 
   it('runs the middleware before reaching the handler (2)', () => {
     const argv = ljos(['cmd1'])
-      .middleware(argv => {
+      .transform(argv => {
         argv.opt1 = 'abc';
       })
       .command({
@@ -58,12 +58,12 @@ describe('middleware', () => {
   it('runs all middleware before reaching the handler', () => {
     let handlerCalled = false;
     ljos(['cmd1'])
-      .middleware({
+      .transform({
         f: argv => {
           argv.opt1 = 'abc';
         },
       })
-      .middleware({
+      .transform({
         f: argv => {
           argv.opt2 = 'def';
         },
@@ -90,10 +90,10 @@ describe('middleware', () => {
   it('runs all middleware before reaching the handler (2)', () => {
     let handlerCalled = false;
     ljos(['cmd1'])
-      .middleware(argv => {
+      .transform(argv => {
         argv.opt1 = 'abc';
       })
-      .middleware(argv => {
+      .transform(argv => {
         argv.opt2 = 'def';
       })
       .command({
@@ -118,7 +118,7 @@ describe('middleware', () => {
   it('should be able to register middleware regardless of when middleware is called', () => {
     let handlerCalled = false;
     ljos(['mw'])
-      .middleware({
+      .transform({
         f: argv => {
           argv.opt1 = 'abc1';
         },
@@ -141,17 +141,17 @@ describe('middleware', () => {
           handlerCalled = true;
         },
       })
-      .middleware({
+      .transform({
         f: argv => {
           argv.opt2 = 'abc2';
         },
       })
-      .middleware({
+      .transform({
         f: function (argv) {
           argv.opt3 = 'abc3';
         },
       })
-      .middleware({
+      .transform({
         f: function (argv) {
           argv.opt4 = 'abc4';
         },
@@ -166,7 +166,7 @@ describe('middleware', () => {
   it("doesn't modify globalMiddleware array when executing middleware", () => {
     let count = 0;
     ljos('bar')
-      .middleware({
+      .transform({
         f: _argv => {
           count++;
         },
@@ -176,7 +176,7 @@ describe('middleware', () => {
         desc: 'foo command',
         builder: () => {},
         handler: () => {},
-        middleware: [
+        transforms: [
           {
             f: () => {
               count++;
@@ -189,7 +189,7 @@ describe('middleware', () => {
         desc: 'bar command',
         builder: () => {},
         handler: () => {},
-        middleware: [
+        transforms: [
           {
             f: _argv => {
               count++;
@@ -255,7 +255,7 @@ describe('middleware', () => {
   it('applies aliases before middleware is called', () => {
     let checked = false;
     ljos(['cmd1', '--opt1', '99'])
-      .middleware({
+      .transform({
         f: argv => {
           argv.o1.should.equal(99);
           argv.opt2 = 'abc';
@@ -269,7 +269,7 @@ describe('middleware', () => {
             .option('opt1', {type: 'number', aliases: ['o1']})
             .option('opt2', {type: 'string'})
             .option('opt3', {type: 'string'})
-            .middleware({
+            .transform({
               f: argv => {
                 argv.o1.should.equal(99);
                 argv.opt3 = 'def';
@@ -290,7 +290,7 @@ describe('middleware', () => {
   describe('applyBeforeValidation=true', () => {
     it('runs before validation', () => {
       const argv = ljos(['cmd1'])
-        .middleware({
+        .transform({
           applyBeforeValidation: true,
           f: argv => {
             argv.opt1 = 'abc';
@@ -314,7 +314,7 @@ describe('middleware', () => {
     it('resolves async middleware, before applying validation', async () => {
       const argv = await ljos(['cmd1'])
         .fail(false)
-        .middleware({
+        .transform({
           applyBeforeValidation: true,
           f: async argv => {
             return new Promise(resolve => {
@@ -343,7 +343,7 @@ describe('middleware', () => {
       try {
         await ljos(['cmd1'])
           .fail(false)
-          .middleware({
+          .transform({
             applyBeforeValidation: true,
             f: async function (argv) {
               return new Promise(resolve => {
@@ -379,7 +379,7 @@ describe('middleware', () => {
           cmd: 'cmd1',
           desc: 'cmd1 desc',
           builder: ljos =>
-            ljos.middleware({
+            ljos.transform({
               applyBeforeValidation: true,
               f: async argv => argv,
             }),
@@ -403,7 +403,7 @@ describe('middleware', () => {
             ljos
               .option('mw', {type: 'string', required: true})
               // We know that this middleware is being run in the context of the mw command
-              .middleware({
+              .transform({
                 applyBeforeValidation: true,
                 f: argv => {
                   argv.mw = 'mw';
@@ -418,7 +418,7 @@ describe('middleware', () => {
 
     it('applies aliases before middleware is called, for global middleware', () => {
       const argv = ljos(['cmd1', '--foo', '99'])
-        .middleware({
+        .transform({
           applyBeforeValidation: true,
           f: argv => {
             argv.f.should.equal(99);
@@ -444,7 +444,7 @@ describe('middleware', () => {
           desc: 'cmd1 desc',
           builder: ljos => {
             ljos
-              .middleware({
+              .transform({
                 applyBeforeValidation: true,
                 f: argv => {
                   argv.f.should.equal(99);
@@ -464,7 +464,7 @@ describe('middleware', () => {
 
   // addresses https://github.com/ljos/ljos/issues/1237
   describe('async', () => {
-    it('fails when the promise returned by the middleware rejects', () => {
+    it('fails when the promise returned by the transform rejects', () => {
       const error = new Error();
       ljos('foo')
         .command({
@@ -472,7 +472,24 @@ describe('middleware', () => {
           desc: 'foo command',
           builder: () => {},
           handler: _argv => new Error('should not have been called'),
-          middleware: [{f: _argv => Promise.reject(error)}],
+          transforms: [{f: _argv => Promise.reject(error)}],
+        })
+        .fail((msg, err) => {
+          expect(msg).to.equal(null);
+          expect(err).to.equal(error);
+        })
+        .parse();
+    });
+
+    it('fails when the promise returned by the check rejects', () => {
+      const error = new Error();
+      ljos('foo')
+        .command({
+          cmd: 'foo',
+          desc: 'foo command',
+          builder: () => {},
+          handler: _argv => new Error('should not have been called'),
+          checks: [_argv => Promise.reject(error)],
         })
         .fail((msg, err) => {
           expect(msg).to.equal(null);
@@ -489,7 +506,7 @@ describe('middleware', () => {
           builder: () => {},
           handler: () => {},
         })
-        .middleware({
+        .check({
           f: async () => {
             return new Promise((resolve, reject) => {
               setTimeout(() => {
@@ -524,7 +541,7 @@ describe('middleware', () => {
             });
           },
         })
-        .middleware({
+        .transform({
           applyBeforeValidation: false,
           f: async argv => {
             return new Promise(resolve => {
@@ -561,7 +578,7 @@ describe('middleware', () => {
               .option('hello', {type: 'string', required: true})
               .option('foo', {type: 'string', required: true}),
           handler: () => {},
-          middleware: [
+          transforms: [
             {
               applyBeforeValidation: true,
               f: asyncMwFactory('hello', 'world'),
@@ -590,7 +607,7 @@ describe('middleware', () => {
             ljos.command({cmd: 'subcmd', desc: 'subcmd desc'});
           },
         })
-        .middleware({
+        .transform({
           f: argv =>
             new Promise(resolve => {
               callCount++;
@@ -615,7 +632,7 @@ describe('middleware', () => {
             desc: 'default command',
             builder: ljos => ljos.option('foo', {type: 'number'}),
           })
-          .middleware({
+          .transform({
             f: argv => {
               return new Promise(resolve => {
                 setTimeout(() => {
@@ -639,7 +656,7 @@ describe('middleware', () => {
                 .option('foo', {type: 'number'})
                 .option('bar', {type: 'string', required: true}),
           })
-          .middleware({
+          .transform({
             applyBeforeValidation: true,
             f: async argv => {
               return new Promise(resolve => {
@@ -668,7 +685,7 @@ describe('middleware', () => {
           .option('bar', {
             required: true,
           })
-          .middleware({
+          .transform({
             applyBeforeValidation: true,
             f: async argv => {
               return new Promise(resolve => {
@@ -699,7 +716,7 @@ describe('middleware', () => {
           desc: 'default command',
           builder: ljos => ljos.option('foo', {type: 'number', required: true}),
         })
-        .middleware({
+        .transform({
           f: argv => {
             argv.foo = argv.foo * 2;
           },
@@ -717,7 +734,7 @@ describe('middleware', () => {
             argv.foo = argv.foo * 3;
           },
         })
-        .middleware({
+        .transform({
           f: argv => {
             argv.foo = argv.foo * 2;
           },
@@ -741,7 +758,7 @@ describe('middleware', () => {
                 required: true,
               }),
         })
-        .middleware({
+        .transform({
           applyBeforeValidation: true,
           f: argv => {
             argv.foo = argv.foo * 2;
@@ -780,7 +797,7 @@ describe('middleware', () => {
           desc: 'snuh desc',
           builder: ljos => ljos.option('foo', {type: 'number'}),
         })
-        .middleware('hello')
+        .transform('hello')
         .parse();
     }, /Expected function/);
     // TODO: /middleware must be an object/
@@ -795,7 +812,7 @@ describe('middleware', () => {
             desc: 'default command',
             builder: ljos => ljos.option('foo', {type: 'number'}),
           })
-          .middleware({
+          .transform({
             applyBeforeValidation: true,
             f: argv => {
               argv.foo *= 2;
@@ -817,7 +834,7 @@ describe('middleware', () => {
             desc: 'default command',
             builder: ljos => ljos.option('foo', {type: 'number'}),
           })
-          .middleware({
+          .transform({
             applyBeforeValidation: true,
             f: async argv => {
               wait();
@@ -871,7 +888,7 @@ describe('middleware', () => {
               await wait();
               output += 'fourth';
             },
-            middleware: [
+            transforms: [
               {
                 f: async argv => {
                   await wait();
@@ -881,7 +898,7 @@ describe('middleware', () => {
               },
             ],
           })
-          .middleware({
+          .transform({
             applyBeforeValidation: true,
             f: async argv => {
               wait();
@@ -958,7 +975,7 @@ describe('middleware', () => {
                 wait();
                 output += 'fourth';
               },
-              middleware: [
+              transforms: [
                 {
                   f: async argv => {
                     wait();
@@ -968,7 +985,7 @@ describe('middleware', () => {
                 },
               ],
             })
-            .middleware({
+            .transform({
               applyBeforeValidation: true,
               f: async argv => {
                 wait();

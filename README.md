@@ -281,6 +281,14 @@ TODO
 
 ## Differences from yargs
 
+- middlewares are more specific:
+  - transforms:
+    - modify argv
+    - handle errors?
+      - show usage? show 'internal error'? only show error?
+  - check:
+    - do not modify argv
+    - raise errors if conditions aren't met, show usage
 - unknown options are treated as bool opt and positional
   - builder (`.option`/`positional`) must be used
   - make strict by default?
@@ -299,8 +307,10 @@ TODO
   - hard to maintain, hard to learn
   - param names don't communicate intention
   - use objects intead
+- reduce number of aliases for config params, commands, etc
 - commands
   - cmd: `{ cmd: str, desc: str, builder: function, handler: function }`
+  - no `.command('cmd', 'cmd desc', ljos => ljos, argv => argv)
 - explicit options
   - `cmd1 <pos1>` will need a corresponding
     `yargs.positional('pos1', { /* ... */ })`

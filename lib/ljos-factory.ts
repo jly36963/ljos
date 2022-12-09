@@ -51,9 +51,10 @@ import {
   MiddlwareInstance,
   MiddlewareInput,
   globalMwFactory,
-  checkMwFactory,
   commandMwFactory,
   Middleware,
+  checkFunc,
+  checkMwFactory,
 } from './middleware.js';
 import {isPromise} from './utils/is-promise.js';
 import {maybeAsyncResult} from './utils/maybe-async-result.js';
@@ -239,43 +240,9 @@ export class LjosInstance {
     return this.addShowHiddenOpt(opt, msg);
   }
   /** Check that certain conditions are met in the provided args */
-  check(
-    checkCallback: (argv: Arguments, options: Options) => any,
-    global = true
-  ): LjosInstance {
+  check(checkCallback: checkFunc, global = true): LjosInstance {
     argsert('<function> [boolean]', [checkCallback, global], arguments.length);
-
-    // Convert check to middleware
-    const middlewareCallback = (
-      argv: Arguments,
-      _ljos: LjosInstance
-    ): maybePromisePartialArgs =>
-      maybeAsyncResult<maybePromisePartialArgs | any>(
-        // Get result of check callback
-        () => checkCallback(argv, _ljos.#getOptions()),
-        // Handle result of check callback
-        (result: any): maybePromisePartialArgs => {
-          if (!result) {
-            this.#usage.fail(
-              this.#shim.y18n.__(
-                'Argument check failed: %s',
-                checkCallback.toString()
-              )
-            );
-          } else if (typeof result === 'string' || result instanceof Error) {
-            this.#usage.fail(result.toString(), result);
-          }
-          return argv;
-        },
-        // Handle error of check callback
-        (err: Error): maybePromisePartialArgs => {
-          this.#usage.fail(err.message ? err.message : err.toString(), err);
-          return argv;
-        }
-      );
-
-    // Add check middleware
-    const middleware = checkMwFactory({f: middlewareCallback, global});
+    const middleware = this.#convertCheckToMiddleware(checkCallback, global);
     return this.#middlewareInstance.addMiddleware(middleware);
   }
   /** Set config object keys/values on argv */
@@ -320,51 +287,21 @@ export class LjosInstance {
 
     return this;
   }
-  /** Register command */
-  #addCommand(
-    cmd: string,
-    desc: CommandHandler['desc'],
-    builder: CommandBuilderCallback = noop,
-    handler: CommandHandlerCallback = noop,
-    config: Partial<CommandConfig> = {}
-  ): LjosInstance {
-    argsert('<string> <string|boolean> <function> <function> [object]', [
-      cmd,
-      desc,
-      builder,
-      handler,
-      config,
-    ]);
-
-    const {aliases = [], middleware = [], deprecated = false} = config;
-    argsert('[array] [array] [boolean]', [aliases, middleware, deprecated]);
-
-    const fullMiddleware = middleware.map(commandMwFactory);
-
-    this.#commandInstance.addHandler(
-      cmd,
-      desc,
-      builder,
-      handler,
-      fullMiddleware,
-      deprecated,
-      aliases
-    );
-    return this;
-  }
   /** Register a command */
   command({
     cmd,
     desc = false,
     builder = noop,
     handler = noop,
-    middleware = [],
+    transforms = [],
+    checks = [],
     deprecated = false,
     aliases = [],
   }: CommandHandlerDefinition): LjosInstance {
     return this.#addCommand(cmd, desc, builder, handler, {
       aliases,
-      middleware,
+      transforms,
+      checks,
       deprecated,
     });
   }
@@ -543,8 +480,8 @@ export class LjosInstance {
     this.#shim.y18n.setLocale(locale);
     return this;
   }
-  /** Register a middleware */
-  middleware(mw: middlewareFunc | MiddlewareInput): LjosInstance {
+  /** Register a transforming middleware */
+  transform(mw: middlewareFunc | MiddlewareInput): LjosInstance {
     const middleware = globalMwFactory(mw);
     return this.#middlewareInstance.addMiddleware(middleware);
   }
@@ -965,7 +902,7 @@ export class LjosInstance {
   //   }
   // }
 
-  /** TODO */
+  /** Configure version behavior */
   version(opt?: string | false, msg?: string, ver?: string): LjosInstance {
     const defaultVersionOpt = 'version';
     argsert(
@@ -1016,6 +953,56 @@ export class LjosInstance {
   // ---
   // Private
   // ---
+
+  /** Add command handler to command instance */
+  #addCommand(
+    cmd: string,
+    desc: CommandHandler['desc'],
+    builder: CommandBuilderCallback = noop,
+    handler: CommandHandlerCallback = noop,
+    config: Partial<CommandConfig> = {}
+  ): LjosInstance {
+    argsert('<string> <string|boolean> <function> <function> [object]', [
+      cmd,
+      desc,
+      builder,
+      handler,
+      config,
+    ]);
+
+    const {
+      aliases = [],
+      transforms = [],
+      checks = [],
+      deprecated = false,
+    } = config;
+    argsert('[array] [array] [array] [boolean]', [
+      aliases,
+      transforms,
+      checks,
+      deprecated,
+    ]);
+
+    // Convert checks/transforms to middleware
+    const checkMiddleware = checks.map(m =>
+      this.#convertCheckToMiddleware(m, false)
+    );
+    const transformMiddleware = transforms.map(commandMwFactory);
+
+    // Order: transform (pre), validation, check, transform (post)
+    const fullMiddleware = [...checkMiddleware, ...transformMiddleware];
+
+    this.#commandInstance.addHandler(
+      cmd,
+      desc,
+      builder,
+      handler,
+      fullMiddleware,
+      deprecated,
+      aliases
+    );
+    return this;
+  }
 
   /** Set an alias (or multiple) for a given argument */
   #aliases(key: string, values: string[]): LjosInstance {
@@ -1132,6 +1119,30 @@ export class LjosInstance {
     return this;
   }
 
+  /** Convert a user-provided check callback to a middleware */
+  #convertCheckToMiddleware(checkCallback: checkFunc, global: boolean) {
+    // Convert check cb to middleware cb
+    const middlewareCallback = (
+      argv: Arguments,
+      _ljos: LjosInstance
+    ): maybePromisePartialArgs =>
+      maybeAsyncResult<maybePromisePartialArgs | any>(
+        // Get result of check callback
+        () => checkCallback(argv, _ljos.#getOptions()),
+        // Handle result of check callback
+        () => {},
+        // Handle error of check callback
+        (err: Error) => {
+          this.#usage.fail(err.message ? err.message : err.toString(), err);
+        }
+      );
+
+    // Convert cb to middleware
+    const middleware = checkMwFactory({f: middlewareCallback, global});
+    return middleware;
+  }
+
+  // TODO: restore this?
   // // To simplify the parsing of positionals in commands,
   // // we temporarily populate '--' rather than _, with arguments
   // // after the '--' directive. After the parse, we copy these back.
@@ -2291,8 +2302,8 @@ interface FrozenLjosInstance {
 }
 
 interface CommandConfig {
-  // middleware: Middleware[];
-  middleware: MiddlewareInput[];
+  transforms: MiddlewareInput[];
+  checks: checkFunc[];
   aliases: string[];
   deprecated: boolean;
 }
