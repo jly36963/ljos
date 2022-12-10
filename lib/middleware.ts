@@ -1,4 +1,5 @@
 import {argsert} from './argsert.js';
+import {maybeAsyncResult} from './utils/maybe-async-result.js';
 import {isPromise} from './utils/is-promise.js';
 import {
   Arguments,
@@ -74,7 +75,7 @@ export class MiddlwareInstance {
 
 /** Take middleware input and merge with defaults */
 export function mwFactory(
-  mw: middlewareFunc | MiddlewareInput,
+  mw: middlewareInput,
   globalByDefault: boolean,
   mutates: boolean
 ): Middleware {
@@ -88,21 +89,20 @@ export function mwFactory(
   };
 }
 
-export function mwFuncToObj(
-  mw: middlewareFunc | MiddlewareInput
-): MiddlewareInput {
+/** Convert mw func/obj union is obj */
+export function mwFuncToObj(mw: middlewareInput): MiddlewareObj {
   return typeof mw === 'function' ? {f: mw} : mw;
 }
 
-export function commandMwFactory(mw: middlewareFunc | MiddlewareInput) {
+export function commandMwFactory(mw: middlewareInput) {
   return mwFactory(mw, false, true);
 }
 
-export function globalMwFactory(mw: middlewareFunc | MiddlewareInput) {
+export function globalMwFactory(mw: middlewareInput) {
   return mwFactory(mw, true, true);
 }
 
-export function checkMwFactory(mw: middlewareFunc | MiddlewareInput) {
+export function checkMwFactory(mw: middlewareInput) {
   return mwFactory(mw, true, false);
 }
 
@@ -115,6 +115,44 @@ function coerceMwFactory(f: middlewareFunc, option: string) {
     applied: false,
     option,
   };
+}
+
+// TODO: make DRY
+/** Convert mw func/obj union is obj */
+export function checkMwFuncToObj(mw: checkInput): CheckObj {
+  return typeof mw === 'function' ? {f: mw} : mw;
+}
+
+/** Convert a user-provided check input to a middleware */
+export function convertCheckToMiddleware(
+  checkMw: checkInput,
+  globalDefault = true
+) {
+  // Convert checkMw to obj, then destructure
+  const {f: checkCallback, global = globalDefault} = checkMwFuncToObj(checkMw);
+
+  // Convert check cb to middleware cb
+  const middlewareCallback = (
+    argv: Arguments,
+    ljos: LjosInstance
+  ): maybePromisePartialArgs =>
+    maybeAsyncResult<maybePromisePartialArgs | any>(
+      // Get result of check callback
+      () => checkCallback(argv, ljos.getInternalMethods().getOptions()),
+      // Handle result of check callback
+      () => {},
+      // Handle error of check callback
+      (err: Error) => {
+        ljos
+          .getInternalMethods()
+          .getUsageInstance()
+          .fail(err.message ? err.message : err.toString(), err);
+      }
+    );
+
+  // Convert cb to middleware
+  const middleware = checkMwFactory({f: middlewareCallback, global});
+  return middleware;
 }
 
 /** Apply middleware (if appropriate) and merge result with argv */
@@ -162,15 +200,24 @@ export type middlewareFunc = (
   ljos: LjosInstance
 ) => maybePromisePartialArgs;
 
-export type checkFunc = (argv: Arguments, options: Options) => void;
-
-export interface MiddlewareInput {
+export interface MiddlewareObj {
   f: middlewareFunc;
   applyBeforeValidation?: boolean;
   global?: boolean;
 }
 
-export interface Middleware extends MiddlewareInput {
+export type middlewareInput = middlewareFunc | MiddlewareObj;
+
+export type checkFunc = (argv: Arguments, options: Options) => void;
+
+export interface CheckObj {
+  f: checkFunc;
+  global?: boolean;
+}
+
+export type checkInput = checkFunc | CheckObj;
+
+export interface Middleware extends MiddlewareObj {
   mutates: boolean;
   applied: boolean;
   option?: string; // Only one coerce middleware can be registered per option

@@ -8,8 +8,8 @@ import {
   applyMiddleware,
   MiddlwareInstance,
   Middleware,
-  MiddlewareInput,
-  checkFunc,
+  middlewareInput,
+  checkInput,
 } from './middleware.js';
 import {parseCommand, Positional} from './parse-command.js';
 import {UsageInstance} from './usage.js';
@@ -727,8 +727,8 @@ export interface CommandHandlerDefinition
   cmd: string;
   builder: CommandBuilderCallback;
   aliases?: string[];
-  transforms?: MiddlewareInput[];
-  checks: checkFunc[];
+  transforms?: middlewareInput[];
+  checks: checkInput[];
 }
 
 // export interface CommandBuilderDefinition {

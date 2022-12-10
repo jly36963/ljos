@@ -177,10 +177,8 @@ describe('middleware', () => {
         builder: () => {},
         handler: () => {},
         transforms: [
-          {
-            f: () => {
-              count++;
-            },
+          () => {
+            count++;
           },
         ],
       })
@@ -190,10 +188,8 @@ describe('middleware', () => {
         builder: () => {},
         handler: () => {},
         transforms: [
-          {
-            f: _argv => {
-              count++;
-            },
+          _argv => {
+            count++;
           },
         ],
       })
@@ -209,10 +205,8 @@ describe('middleware', () => {
         cmd: 'cmd1',
         desc: 'cmd1 desc',
         builder: ljos => {
-          ljos.option('opt1', {type: 'string'}).middleware({
-            f: argv => {
-              argv.opt1 = 'abc';
-            },
+          ljos.option('opt1', {type: 'string'}).transform(argv => {
+            argv.opt1 = 'abc';
           });
         },
         handler: argv => {
@@ -234,11 +228,9 @@ describe('middleware', () => {
         cmd: 'cmd1',
         desc: 'adds func to middleware',
         builder: ljos => {
-          ljos.option('opt1', {type: 'string'}).middleware({
-            f: (argv, ljos) => {
-              expect(typeof ljos.help).to.equal('function');
-              argv.opt1 = 'abc';
-            },
+          ljos.option('opt1', {type: 'string'}).transform((argv, ljos) => {
+            expect(typeof ljos.help).to.equal('function');
+            argv.opt1 = 'abc';
           });
         },
         handler: argv => {
@@ -255,11 +247,9 @@ describe('middleware', () => {
   it('applies aliases before middleware is called', () => {
     let checked = false;
     ljos(['cmd1', '--opt1', '99'])
-      .transform({
-        f: argv => {
-          argv.o1.should.equal(99);
-          argv.opt2 = 'abc';
-        },
+      .transform(argv => {
+        argv.o1.should.equal(99);
+        argv.opt2 = 'abc';
       })
       .command({
         cmd: 'cmd1',
@@ -269,11 +259,9 @@ describe('middleware', () => {
             .option('opt1', {type: 'number', aliases: ['o1']})
             .option('opt2', {type: 'string'})
             .option('opt3', {type: 'string'})
-            .transform({
-              f: argv => {
-                argv.o1.should.equal(99);
-                argv.opt3 = 'def';
-              },
+            .transform(argv => {
+              argv.o1.should.equal(99);
+              argv.opt3 = 'def';
             }),
         handler: argv => {
           argv.opt2.should.equal('abc');
@@ -472,7 +460,7 @@ describe('middleware', () => {
           desc: 'foo command',
           builder: () => {},
           handler: _argv => new Error('should not have been called'),
-          transforms: [{f: _argv => Promise.reject(error)}],
+          transforms: [_argv => Promise.reject(error)],
         })
         .fail((msg, err) => {
           expect(msg).to.equal(null);
@@ -607,13 +595,13 @@ describe('middleware', () => {
             ljos.command({cmd: 'subcmd', desc: 'subcmd desc'});
           },
         })
-        .transform({
-          f: argv =>
+        .transform(
+          argv =>
             new Promise(resolve => {
               callCount++;
               resolve(argv);
-            }),
-        })
+            })
+        )
         .parse();
 
       if (!(argvPromise instanceof Promise)) {
@@ -632,16 +620,15 @@ describe('middleware', () => {
             desc: 'default command',
             builder: ljos => ljos.option('foo', {type: 'number'}),
           })
-          .transform({
-            f: argv => {
-              return new Promise(resolve => {
+          .transform(
+            argv =>
+              new Promise(resolve => {
                 setTimeout(() => {
                   argv.foo = argv.foo * 3;
                   return resolve();
                 }, 20);
-              });
-            },
-          })
+              })
+          )
           .parse();
         argv.foo.should.equal(297);
       });
@@ -716,10 +703,8 @@ describe('middleware', () => {
           desc: 'default command',
           builder: ljos => ljos.option('foo', {type: 'number', required: true}),
         })
-        .transform({
-          f: argv => {
-            argv.foo = argv.foo * 2;
-          },
+        .transform(argv => {
+          argv.foo = argv.foo * 2;
         })
         .parse();
       argv.foo.should.equal(198);
@@ -734,10 +719,8 @@ describe('middleware', () => {
             argv.foo = argv.foo * 3;
           },
         })
-        .transform({
-          f: argv => {
-            argv.foo = argv.foo * 2;
-          },
+        .transform(argv => {
+          argv.foo = argv.foo * 2;
         })
         .parse();
       argv.foo.should.equal(600);
@@ -789,7 +772,7 @@ describe('middleware', () => {
   //   argv.foo.should.equal(198);
   // });
 
-  it('throws error if middleware is not function', () => {
+  it('throws error if middleware is not function or object', () => {
     assert.throws(() => {
       ljos('snuh --foo 99')
         .command({
@@ -800,7 +783,6 @@ describe('middleware', () => {
         .transform('hello')
         .parse();
     }, /Expected function/);
-    // TODO: /middleware must be an object/
   });
 
   describe('async check', () => {
@@ -889,12 +871,10 @@ describe('middleware', () => {
               output += 'fourth';
             },
             transforms: [
-              {
-                f: async argv => {
-                  await wait();
-                  output += 'third';
-                  argv.foo *= 2;
-                },
+              async argv => {
+                await wait();
+                output += 'third';
+                argv.foo *= 2;
               },
             ],
           })
@@ -924,8 +904,10 @@ describe('middleware', () => {
             })
             .fail(false)
             .check(async argv => {
-              wait();
-              return argv.foo > 50;
+              await wait();
+              if (argv.foo < 50) {
+                throw new Error('Argument check failed');
+              }
             })
             .parse(),
           /Argument check failed/
@@ -943,7 +925,9 @@ describe('middleware', () => {
                 ljos.option('foo', {type: 'number'}).check(async argv => {
                   wait();
                   output += 'first';
-                  return argv.foo >= 200;
+                  if (argv.foo < 200) {
+                    throw new Error('Argument check failed');
+                  }
                 });
               },
               handler: async _argv => {
@@ -968,7 +952,9 @@ describe('middleware', () => {
                 ljos.option('foo', {type: 'number'}).check(async argv => {
                   wait();
                   output += 'second';
-                  return argv.foo >= 200;
+                  if (argv.foo < 200) {
+                    throw new Error('Argument check failed');
+                  }
                 });
               },
               handler: async _argv => {
@@ -976,12 +962,10 @@ describe('middleware', () => {
                 output += 'fourth';
               },
               transforms: [
-                {
-                  f: async argv => {
-                    wait();
-                    output += 'third';
-                    argv.foo *= 2;
-                  },
+                async argv => {
+                  wait();
+                  output += 'third';
+                  argv.foo *= 2;
                 },
               ],
             })

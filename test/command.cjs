@@ -1590,10 +1590,13 @@ describe('Command', () => {
                 .positional('snuh', {type: 'string', required: true})
                 .option('foo', {type: 'boolean'}),
           })
-          .check(_argv => {
-            checkCalled = true;
-            return true;
-          }, false)
+          .check({
+            f: _argv => {
+              checkCalled = true;
+              return true;
+            },
+            global: false,
+          })
           .parse();
         checkCalled.should.equal(false);
       });

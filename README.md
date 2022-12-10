@@ -147,7 +147,7 @@ ljos()
     },
     // Array of middleware objects with callbacks
     // Result of middleware callback will be merged with argv
-    middleware: [
+    transforms: [
       // Just a callback function
       ({ firstName }) => ({ firstName: firstName.toUpperCase() }),
       // Or an object with additional fields
@@ -284,8 +284,7 @@ TODO
 - middlewares are more specific:
   - transforms:
     - modify argv
-    - handle errors?
-      - show usage? show 'internal error'? only show error?
+    - same behavior around errors
   - check:
     - do not modify argv
     - raise errors if conditions aren't met, show usage
@@ -317,25 +316,19 @@ TODO
 
 ## Tasks
 
-- simplify middleware
-  - middleware to modify argv
-  - checks to validate argv
-    - add checks to command obj
-    - do not mutate argv
-    - make callback void, only throw errors
+- middleware
   - convert validation methods to check middleware helpers
     - demand / requiresArg logic
-  - makeMiddleware func (f => obj)
+  - accept check cb & middleware
+  - remove coerce
 - fix/remove/address TODO tests
 - argsert for object params
 - strict by default, only return first unknown?
 - Integrate @types/yargs types
-
 - unknown option/positional
   - parseArgs will treat unknown option as boolean
   - not sure what happens with positional
     - eg: `cmd1 <pos1>`with no corresponding `ljos.positional()`
-
 - Don't allow mixture of option/positional for a given key
   - might not be possible,
   - options/positionals are run through the parser as options (separately)

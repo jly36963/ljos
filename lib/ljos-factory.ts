@@ -39,22 +39,16 @@ import {
   CompletionFunction,
   CompletionInstance,
 } from './completion.js';
-import {
-  // KeyOrPos,
-  validation as Validation,
-  ValidationInstance,
-} from './validation.js';
+import {validation as Validation, ValidationInstance} from './validation.js';
 import {objFilter} from './utils/obj-filter.js';
 import {
-  middlewareFunc,
   applyMiddleware,
   MiddlwareInstance,
-  MiddlewareInput,
+  middlewareInput,
   globalMwFactory,
   commandMwFactory,
-  Middleware,
-  checkFunc,
-  checkMwFactory,
+  checkInput,
+  convertCheckToMiddleware,
 } from './middleware.js';
 import {isPromise} from './utils/is-promise.js';
 import {maybeAsyncResult} from './utils/maybe-async-result.js';
@@ -239,10 +233,10 @@ export class LjosInstance {
   showHidden(opt?: string | false, msg?: string): LjosInstance {
     return this.addShowHiddenOpt(opt, msg);
   }
-  /** Check that certain conditions are met in the provided args */
-  check(checkCallback: checkFunc, global = true): LjosInstance {
-    argsert('<function> [boolean]', [checkCallback, global], arguments.length);
-    const middleware = this.#convertCheckToMiddleware(checkCallback, global);
+  /** Check that certain conditions are met for argv */
+  check(checkMw: checkInput): LjosInstance {
+    argsert('<function|object>', [checkMw], arguments.length);
+    const middleware = convertCheckToMiddleware(checkMw);
     return this.#middlewareInstance.addMiddleware(middleware);
   }
   /** Set config object keys/values on argv */
@@ -481,7 +475,7 @@ export class LjosInstance {
     return this;
   }
   /** Register a transforming middleware */
-  transform(mw: middlewareFunc | MiddlewareInput): LjosInstance {
+  transform(mw: middlewareInput): LjosInstance {
     const middleware = globalMwFactory(mw);
     return this.#middlewareInstance.addMiddleware(middleware);
   }
@@ -984,9 +978,7 @@ export class LjosInstance {
     ]);
 
     // Convert checks/transforms to middleware
-    const checkMiddleware = checks.map(m =>
-      this.#convertCheckToMiddleware(m, false)
-    );
+    const checkMiddleware = checks.map(m => convertCheckToMiddleware(m, false));
     const transformMiddleware = transforms.map(commandMwFactory);
 
     // Order: transform (pre), validation, check, transform (post)
@@ -1117,29 +1109,6 @@ export class LjosInstance {
     argsert('<string> <array>', [key1, conflictKeys], arguments.length);
     this.#validationInstance.conflicts(key1, conflictKeys);
     return this;
-  }
-
-  /** Convert a user-provided check callback to a middleware */
-  #convertCheckToMiddleware(checkCallback: checkFunc, global: boolean) {
-    // Convert check cb to middleware cb
-    const middlewareCallback = (
-      argv: Arguments,
-      _ljos: LjosInstance
-    ): maybePromisePartialArgs =>
-      maybeAsyncResult<maybePromisePartialArgs | any>(
-        // Get result of check callback
-        () => checkCallback(argv, _ljos.#getOptions()),
-        // Handle result of check callback
-        () => {},
-        // Handle error of check callback
-        (err: Error) => {
-          this.#usage.fail(err.message ? err.message : err.toString(), err);
-        }
-      );
-
-    // Convert cb to middleware
-    const middleware = checkMwFactory({f: middlewareCallback, global});
-    return middleware;
   }
 
   // TODO: restore this?
@@ -2302,8 +2271,8 @@ interface FrozenLjosInstance {
 }
 
 interface CommandConfig {
-  transforms: MiddlewareInput[];
-  checks: checkFunc[];
+  transforms: Array<middlewareInput>;
+  checks: Array<checkInput>;
   aliases: string[];
   deprecated: boolean;
 }
