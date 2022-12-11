@@ -150,7 +150,7 @@ ljos()
     transforms: [
       // Just a callback function
       ({ firstName }) => ({ firstName: firstName.toUpperCase() }),
-      // Or an object with additional fields
+      // Or an object with additional configuration
       {
         f: ({ lastName }) => ({ lastName: stringToBase64(lastName) }),
         applyBeforeMiddleware: true,
@@ -192,7 +192,7 @@ ljos()
             throw new Error("Please do not divide by 0");
           }
           // Passes validation, continues with execution
-          return true;
+          return;
         }),
     handler: (argv) => {
       const { a, b } = argv;
@@ -316,14 +316,14 @@ TODO
 
 ## Tasks
 
+- argsert for object params
+- strict by default, only return first unknown?
+- fix/remove/address TODO tests
 - middleware
   - convert validation methods to check middleware helpers
     - demand / requiresArg logic
   - accept check cb & middleware
   - remove coerce
-- fix/remove/address TODO tests
-- argsert for object params
-- strict by default, only return first unknown?
 - Integrate @types/yargs types
 - unknown option/positional
   - parseArgs will treat unknown option as boolean
