@@ -281,6 +281,8 @@ TODO
 
 ## Differences from yargs
 
+- no browser or deno
+  - Deno has node/npm compatibility, not sure if they have util.parseArgs yet
 - middlewares are more specific:
   - transform:
     - modify argv
