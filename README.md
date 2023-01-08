@@ -283,6 +283,7 @@ TODO
 
 - no browser or deno
   - Deno has node/npm compatibility, not sure if they have util.parseArgs yet
+  - It might work when installing from npm. I'm not sure
 - middlewares are more specific:
   - transform:
     - modify argv
@@ -296,16 +297,21 @@ TODO
       - I think this is the case, but I need to double-check
     - can only figure out greedy arrays, nargs, and count with config
   - ljos
-    - config is needed for the parser to correctly
+    - config is needed for the parser to correctly parse
+      - eg: without config, `--name Ben` is `{ name: true, _: ['Ben'] }`
     - builder (`.option`/`positional`) must be used
     - TODO: this is fundamentally different than yargs
       - reconcile difference with pre-processing?
       - require the use of builder for all options and make strict by default?
-- no nargs, count, or fs-related logic (config, etc)
-  - nargs might not be easy or possible using `util.parseArgs`
-    - maybe preprocessing?
-    - maybe use tokens from parseArgs?
-  - is there a compelling reason to keep count?
+- no count
+  - is there a really compelling reason to keep count?
+- no nargs
+  - is this a heavily used feature?
+    - I'm not opposed to keeping nargs
+    - implementing it around parseArgs might be difficult
+      - maybe preprocessing?
+      - maybe use tokens returned by parseArgs?
+- no fs-related logic (config, etc)
   - I would like to keep fs logic out
     - cjs/esm/deno handle all differently
     - does it really need to be the concern of ljos?
@@ -314,24 +320,24 @@ TODO
       - eg: recursively reading directories as commands/subcommands
 - use option definition object properties, not yargs methods
   - no `yargs.string()`
-  - use `.option('opt1', {type: 'string'})`
+  - use `ljos.option('opt1', {type: 'string'})`
 - one call signature per function (where possible)
   - I dislike overloads
-    - hard to maintain & hard to learn
+    - hard to maintain, learn, and document
     - param names don't communicate intention
   - if multiple optional args, use config objects intead
 - reduce number of aliases for config params, commands, etc
-  - smaller mental load, less exceptions to handle
+  - smaller mental load, less corner cases, simpler types
 - no parser config
   - boolean-negation
-    - would need pre-processing (eg: `no-save` -> `{save: false}`)
+    - would need pre-processing (eg: `--no-save` -> `{save: false}`)
   - camel-case expansion, strip-aliased, strip-dashed
     - all could be middleware instead?
     - I want to eventually ship types with ljos, and this makes it painful
     - I dreaded working around these in yargs, as tracking keys becomes complex
-      - eg: which keys have defaults?
-      - I'm guessing that there are a bunch of unsolved corner case bugs in
-        yargs because of this
+      - eg: which keys have defaults set?
+      - yargs tracks a lot of things by key and associated aliases
+        - I imagine there are corner-case bugs when combining casing and aliases
   - greedy-arrays
     - This is where a lot of complex/unsolvable bugs are in yargs
     - I would rather people not use greedy options
