@@ -284,6 +284,11 @@ TODO
 - no browser or deno
   - Deno has node/npm compatibility, not sure if they have util.parseArgs yet
   - It might work when installing from npm. I'm not sure
+- commands
+  - command module only:
+    - `ljos.cmd({ cmd: str, desc: str, builder: function, handler: function })`
+  - no legacy builder
+    - `yargs.command('cmd', 'cmd desc', ljos => ljos, argv => argv)`
 - middlewares are more specific:
   - transform:
     - modify argv
@@ -291,18 +296,22 @@ TODO
   - check:
     - do not modify argv
     - raise errors if conditions aren't met, show usage
-- unknown options are treated as bool opt and positional
-  - yargs
-    - can figure out bool vs string vs number without configuration
-      - I think this is the case, but I need to double-check
-    - can only figure out greedy arrays, nargs, and count with config
-  - ljos
-    - config is needed for the parser to correctly parse
-      - eg: without config, `--name Ben` is `{ name: true, _: ['Ben'] }`
-    - builder (`.option`/`positional`) must be used
-    - TODO: this is fundamentally different than yargs
-      - reconcile difference with pre-processing?
-      - require the use of builder for all options and make strict by default?
+- options and positionals must be explicitly defined
+  - explicit options
+    - unknown options are treated as bool opt and positional
+    - yargs
+      - yargs can properly parse bool/string/number without configuration
+      - config required to figure out greedy arrays, nargs, and count
+    - ljos
+      - config is needed for the parser to correctly parse anything
+        - eg: without config, `--name Ben` is `{ name: true, _: ['Ben'] }`
+        - to parse properly, one must use: `.option('name', { type: 'string' })`
+      - TODO: this is fundamentally different than yargs
+        - reconcile difference with pre-processing?
+        - require explicit def for options? make strict by default?
+  - explicit positionals
+    - `cmd1 <pos1>` will need a corresponding
+      `ljos.positional('pos1', { /* ... */ })`
 - no count
   - is there a really compelling reason to keep count?
 - no nargs
@@ -340,16 +349,8 @@ TODO
         - I imagine there are corner-case bugs when combining casing and aliases
   - greedy-arrays
     - This is where a lot of complex/unsolvable bugs are in yargs
-    - I would rather people not use greedy options
+    - I would rather people not use greedy array options
     - Am I wrong to think that variadic args should be positional?
-- commands
-  - command module only:
-    - `ljos.cmd({ cmd: str, desc: str, builder: function, handler: function })`
-  - no legacy builder
-    - `yargs.command('cmd', 'cmd desc', ljos => ljos, argv => argv)`
-- explicit options/positionals
-  - `cmd1 <pos1>` will need a corresponding
-    `yargs.positional('pos1', { /* ... */ })`
 
 ## Tasks
 
